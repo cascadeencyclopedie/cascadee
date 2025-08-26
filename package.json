@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "cascade-chat",
+  "version": "1.0.0",
+  "description": "Cascade: chat web app with Ollama (gemma family)",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["ollama", "chat", "gemma", "llm"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "node-fetch": "^3.3.2"
+  }
+}

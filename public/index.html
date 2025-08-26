@@ -1,0 +1,2104 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cascade Encylopédie</title>
+  <link rel="icon" href="cascade.ico" type="image/x-icon" />
+  <link rel="shortcut icon" href="../cascade.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <meta name="description" content="Cascade — interface de chat inspirée de Wikipédia avec Ollama" />
+  <meta name="color-scheme" content="light" />
+  
+  <!-- No external fonts to keep it self-contained -->
+</head>
+<body>
+  <div class="mw">
+    <!-- Header à la Wikipédia -->
+    <header class="mw-header">
+      <div class="mw-brand">
+        <a class="mw-logo" href="#" title="Accueil"><img src="cascade.ico" alt="Logo" class="mw-logo-icon">Cascade Encylopédie</a>
+        <div class="mw-slogan">un projet d'encyclopédie libre</div>
+      </div>
+      <form class="mw-search" role="search" aria-label="Recherche du site">
+        <input class="mw-search-input" type="search" placeholder="Rechercher dans Cascade Encyclopédie" />
+        <button class="mw-search-btn" type="submit">Rechercher</button>
+      </form>
+      <div class="mw-auth">
+        <button type="button" class="mw-auth-btn" id="btn-login"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Se connecter</button>
+        <button type="button" class="mw-auth-btn" id="btn-register"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Créer un compte</button>
+      </div>
+    </header>
+
+    <div class="mw-layout">
+      <!-- Sidebar de navigation -->
+      <nav class="mw-sidebar" aria-label="Menu principal">
+        <section>
+          <h3>
+            Menu principal
+            <button type="button" id="sidebar-toggle" class="mw-sidebar-toggle" aria-expanded="true" title="Afficher/masquer le menu">
+              <i class="fa-solid fa-bars" aria-hidden="true"></i>
+            </button>
+          </h3>
+          <ul id="sidebar-links">
+            <li><a href="#">Accueil</a></li>
+            <li><a href="#">Cascade Assistant</a></li>
+            <li><a href="#">Portails thématiques</a></li>
+            <li><a href="#">Article au hasard</a></li>
+            <li><a href="#">Contact</a></li>
+          </ul>
+        </section>
+        <section id="appearance-section" aria-labelledby="appearance-title">
+          <h3 id="appearance-title">
+            Apparence
+            <button type="button" id="appearance-toggle" class="mw-sidebar-toggle" aria-expanded="true" title="Afficher/masquer l'apparence">
+              <i class="fa-solid fa-bars" aria-hidden="true"></i>
+            </button>
+          </h3>
+          <form class="mw-appearance">
+            <fieldset>
+              <legend>Taille du texte</legend>
+              <label><input type="radio" name="text-size" value="small"> Petite</label>
+              <label><input type="radio" name="text-size" value="standard" checked> Standard</label>
+              <label><input type="radio" name="text-size" value="large"> Grande</label>
+            </fieldset>
+            <fieldset>
+              <legend>Largeur</legend>
+              <label><input type="radio" name="layout-width" value="standard"> Standard</label>
+              <label><input type="radio" name="layout-width" value="wide" checked> Large</label>
+            </fieldset>
+            <fieldset>
+              <legend>Couleur (bêta)</legend>
+              <label><input type="radio" name="color-scheme" value="auto" checked> Appareil</label>
+              <label><input type="radio" name="color-scheme" value="light"> Clair</label>
+              <label><input type="radio" name="color-scheme" value="dark"> Sombre</label>
+            </fieldset>
+          </form>
+        </section>
+      </nav>
+
+      <!-- Contenu principal -->
+      <div class="mw-content">
+        <article class="mw-article">
+          <main id="chat" class="chat"></main>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Auth -->
+  <div class="mw-modal" id="authModal" hidden>
+    <div class="mw-modal-backdrop" data-close="true"></div>
+    <div class="mw-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <div class="mw-modal-header">
+        <h2 id="authTitle">Bienvenue</h2>
+        <button type="button" class="mw-modal-close" title="Fermer" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="mw-modal-tabs" role="tablist">
+        <button type="button" class="mw-tab active" id="tab-login" aria-selected="true">Se connecter</button>
+        <button type="button" class="mw-tab" id="tab-register" aria-selected="false">S'inscrire</button>
+      </div>
+      <div class="mw-modal-body">
+        <form id="form-login" autocomplete="on">
+          <label>Email
+            <input type="email" name="email" required placeholder="vous@exemple.com" />
+          </label>
+          <label>Mot de passe
+            <input type="password" name="password" required placeholder="••••••••" />
+          </label>
+          <button type="submit" class="mw-primary">Se connecter</button>
+        </form>
+        <form id="form-register" hidden autocomplete="on">
+          <label>Email
+            <input type="email" name="email" required placeholder="vous@exemple.com" />
+          </label>
+          <label>Mot de passe
+            <input type="password" name="password" required placeholder="••••••••" />
+          </label>
+          <label>Confirmer le mot de passe
+            <input type="password" name="confirm" required placeholder="••••••••" />
+          </label>
+          <button type="submit" class="mw-primary">Créer un compte</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const form = document.querySelector('.mw-search');
+      const input = document.querySelector('.mw-search-input');
+      const container = document.getElementById('chat');
+      const rootMw = document.querySelector('.mw');
+      const sidebar = document.querySelector('.mw-sidebar');
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      const appearanceSection = document.getElementById('appearance-section');
+      const appearanceToggle = document.getElementById('appearance-toggle');
+      const appearanceForm = document.querySelector('.mw-appearance');
+      // Auth elements
+      const btnLogin = document.getElementById('btn-login');
+      const btnRegister = document.getElementById('btn-register');
+      const modal = document.getElementById('authModal');
+      const modalClose = modal ? modal.querySelector('.mw-modal-close') : null;
+      const tabLogin = modal ? modal.querySelector('#tab-login') : null;
+      const tabRegister = modal ? modal.querySelector('#tab-register') : null;
+      const formLogin = modal ? modal.querySelector('#form-login') : null;
+      const formRegister = modal ? modal.querySelector('#form-register') : null;
+      const HOME_TITLE = 'Wikipédia:Accueil principal';
+      if (!form || !input || !container) return;
+
+      // Sidebar collapse/expand: keep title visible, hide list
+      if (sidebar && sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+          const collapsed = sidebar.classList.toggle('collapsed');
+          sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
+        });
+      }
+
+      // Appearance section collapse/expand
+      if (appearanceSection && appearanceToggle) {
+        appearanceToggle.addEventListener('click', () => {
+          const collapsed = appearanceSection.classList.toggle('collapsed');
+          appearanceToggle.setAttribute('aria-expanded', String(!collapsed));
+        });
+      }
+
+      // --- Appearance controls ---
+      function setTextSize(val) {
+        rootMw.classList.remove('text-small','text-large');
+        if (val === 'small') rootMw.classList.add('text-small');
+        else if (val === 'large') rootMw.classList.add('text-large');
+        localStorage.setItem('appearance.textSize', val);
+      }
+      function setLayoutWidth(val) {
+        rootMw.classList.toggle('wide-layout', val === 'wide');
+        localStorage.setItem('appearance.layoutWidth', val);
+      }
+      let themeMediaListener = null;
+      function applyThemeByPreference() {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme(prefersDark ? 'dark' : 'light', true);
+      }
+      function setTheme(val, fromAuto = false) {
+        rootMw.classList.remove('theme-light','theme-dark');
+        if (val === 'light') rootMw.classList.add('theme-light');
+        else if (val === 'dark') rootMw.classList.add('theme-dark');
+        // Manage auto mode
+        const autoSelected = (appearanceForm?.querySelector('input[name="color-scheme"][value="auto"]')?.checked) || val === 'auto';
+        if (autoSelected && !fromAuto) {
+          // set once from pref and attach listener
+          applyThemeByPreference();
+          if (!themeMediaListener && window.matchMedia) {
+            const mq = window.matchMedia('(prefers-color-scheme: dark)');
+            themeMediaListener = (e) => setTheme(e.matches ? 'dark' : 'light', true);
+            mq.addEventListener('change', themeMediaListener);
+          }
+        } else if (!autoSelected && themeMediaListener && window.matchMedia) {
+          const mq = window.matchMedia('(prefers-color-scheme: dark)');
+          mq.removeEventListener('change', themeMediaListener);
+          themeMediaListener = null;
+        }
+        localStorage.setItem('appearance.theme', autoSelected ? 'auto' : val);
+      }
+
+      function initAppearance() {
+        if (!appearanceForm) return;
+        // Load saved preferences
+        const savedText = localStorage.getItem('appearance.textSize') || 'standard';
+        const savedWidth = localStorage.getItem('appearance.layoutWidth') || 'wide';
+        const savedTheme = localStorage.getItem('appearance.theme') || 'auto';
+        // Apply
+        setTextSize(savedText);
+        setLayoutWidth(savedWidth);
+        if (savedTheme === 'auto') applyThemeByPreference(); else setTheme(savedTheme);
+        // Reflect radios
+        const setChecked = (name, value) => {
+          const el = appearanceForm.querySelector(`input[name="${name}"][value="${value}"]`);
+          if (el) el.checked = true;
+        };
+        setChecked('text-size', savedText);
+        setChecked('layout-width', savedWidth);
+        setChecked('color-scheme', savedTheme);
+        // Listeners
+        appearanceForm.addEventListener('change', (e) => {
+          const t = e.target;
+          if (!(t instanceof HTMLInputElement) || t.type !== 'radio') return;
+          if (t.name === 'text-size') setTextSize(t.value);
+          if (t.name === 'layout-width') setLayoutWidth(t.value);
+          if (t.name === 'color-scheme') {
+            if (t.value === 'auto') applyThemeByPreference(); else setTheme(t.value);
+          }
+        });
+      }
+      initAppearance();
+
+      async function searchTitle(q) {
+        const url = 'https://fr.wikipedia.org/w/api.php?action=query&list=search&srsearch=' + encodeURIComponent(q) + '&format=json&origin=*';
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Search failed');
+        const data = await res.json();
+        const first = data && data.query && data.query.search && data.query.search[0];
+        return first ? first.title : null;
+      }
+
+      function rewriteInternalLinks(root) {
+        const WP = 'https://fr.wikipedia.org';
+        root.querySelectorAll('a[href]').forEach(a => {
+          const href = a.getAttribute('href');
+          if (!href) return;
+          // Normalize absolute URL for consistent parsing later
+          let urlStr = href;
+          if (href.startsWith('//')) urlStr = 'https:' + href;
+          else if (href.startsWith('/')) urlStr = WP + href;
+          else if (href.startsWith('./')) urlStr = WP + '/wiki/' + href.slice(2);
+          try {
+            const u = new URL(urlStr);
+            if (u.hostname !== 'fr.wikipedia.org') return;
+            let title = null;
+            if (u.pathname.startsWith('/wiki/')) {
+              title = decodeURIComponent(u.pathname.substring('/wiki/'.length)).replace(/_/g, ' ');
+            } else if (u.pathname === '/w/index.php' && u.searchParams.has('title')) {
+              title = decodeURIComponent(u.searchParams.get('title')).replace(/_/g, ' ');
+            }
+            if (title) {
+              a.removeAttribute('target');
+              a.dataset.wpTitle = title;
+              // Neutralize navigation so browser won't leave even if handler fails
+              a.dataset.wpHref = WP + '/wiki/' + encodeURIComponent(title.replace(/ /g, '_'));
+              a.setAttribute('href', '#');
+              a.classList.add('wp-internal-link');
+            }
+          } catch (_) { /* ignore */ }
+        });
+      }
+      // --- Auth modal logic ---
+      function openAuth(which = 'login') {
+        if (!modal) return;
+        modal.hidden = false;
+        document.body.style.overflow = 'hidden';
+        setAuthTab(which);
+      }
+      function closeAuth() {
+        if (!modal) return;
+        modal.hidden = true;
+        document.body.style.overflow = '';
+      }
+      function setAuthTab(which) {
+        if (!modal) return;
+        const isLogin = which === 'login';
+        tabLogin.classList.toggle('active', isLogin);
+        tabLogin.setAttribute('aria-selected', String(isLogin));
+        tabRegister.classList.toggle('active', !isLogin);
+        tabRegister.setAttribute('aria-selected', String(!isLogin));
+        formLogin.hidden = !isLogin;
+        formRegister.hidden = isLogin;
+        const title = isLogin ? 'Se connecter' : 'Créer un compte';
+        modal.querySelector('#authTitle').textContent = title;
+      }
+      // Inline auth rendering inside main content (single form only)
+      function renderAuth(which = 'login') {
+        if (!container) return;
+        // Cancel any ongoing TTS and clear editing state if needed
+        try { window.speechSynthesis.cancel(); } catch(_) {}
+        container.innerHTML = '';
+        const wrapper = document.createElement('div');
+        wrapper.className = 'auth-card';
+        const isLogin = which === 'login';
+        // Update browser tab title for auth views
+        document.title = (isLogin ? 'Se connecter' : 'Créer un compte') + ' | Cascade Encylopédie';
+        const body = isLogin ? `
+            <form id="auth-form-login" autocomplete="on">
+              <label>Email
+                <input type="email" name="email" required placeholder="vous@exemple.com" />
+              </label>
+              <label>Mot de passe
+                <input type="password" name="password" required placeholder="••••••••" />
+              </label>
+              <button type="submit" class="mw-primary">Se connecter</button>
+              <p class="auth-switch">Pas encore de compte ? <a href="#" id="auth-switch-link">Cliquez ici pour vous inscrire</a>.</p>
+            </form>
+        ` : `
+            <form id="auth-form-register" autocomplete="on">
+              <label>Email
+                <input type="email" name="email" required placeholder="vous@exemple.com" />
+              </label>
+              <label>Mot de passe
+                <input type="password" name="password" required placeholder="••••••••" />
+              </label>
+              <label>Confirmer le mot de passe
+                <input type="password" name="confirm" required placeholder="••••••••" />
+              </label>
+              <button type="submit" class="mw-primary">Créer un compte</button>
+              <p class="auth-switch">Vous êtes déjà inscrit ? <a href="#" id="auth-switch-link">Cliquez ici pour vous connecter</a>.</p>
+            </form>
+        `;
+        wrapper.innerHTML = `
+          <h1 class="auth-title">${isLogin ? 'Se connecter' : 'Créer un compte'}</h1>
+          <div class="auth-body">${body}
+          </div>
+        `;
+        container.appendChild(wrapper);
+        const fLogin = wrapper.querySelector('#auth-form-login');
+        const fRegister = wrapper.querySelector('#auth-form-register');
+        const switchLink = wrapper.querySelector('#auth-switch-link');
+        if (fLogin) fLogin.addEventListener('submit', (e) => { e.preventDefault(); alert('Connexion (démo)'); });
+        if (fRegister) fRegister.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const pw = fRegister.querySelector('input[name="password"]').value;
+          const cf = fRegister.querySelector('input[name="confirm"]').value;
+          if (pw !== cf) { alert('Les mots de passe ne correspondent pas.'); return; }
+          alert('Inscription (démo)');
+        });
+        if (switchLink) switchLink.addEventListener('click', (e) => { e.preventDefault(); renderAuth(isLogin ? 'register' : 'login'); });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      if (btnLogin) btnLogin.addEventListener('click', () => renderAuth('login'));
+      if (btnRegister) btnRegister.addEventListener('click', () => renderAuth('register'));
+      if (modalClose) modalClose.addEventListener('click', closeAuth);
+      if (modal) modal.addEventListener('click', (e) => { if (e.target && e.target.getAttribute('data-close')) closeAuth(); });
+      if (tabLogin) tabLogin.addEventListener('click', () => setAuthTab('login'));
+      if (tabRegister) tabRegister.addEventListener('click', () => setAuthTab('register'));
+      document.addEventListener('keydown', (e) => { if (!modal.hidden && e.key === 'Escape') closeAuth(); });
+      if (formLogin) formLogin.addEventListener('submit', (e) => { e.preventDefault(); alert('Connexion (démo)'); closeAuth(); });
+      if (formRegister) formRegister.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const pw = formRegister.querySelector('input[name="password"]').value;
+        const cf = formRegister.querySelector('input[name="confirm"]').value;
+        if (pw !== cf) { alert('Les mots de passe ne correspondent pas.'); return; }
+        alert('Inscription (démo)');
+        closeAuth();
+      });
+
+      async function fetchArticleHTML(title) {
+        // Try REST (Parsoid) HTML first
+        try {
+          const url = 'https://fr.wikipedia.org/api/rest_v1/page/html/' + encodeURIComponent(title);
+          const res = await fetch(url, { headers: { 'Accept': 'text/html' } });
+          if (res.ok) return await res.text();
+        } catch (_) {}
+        // Fallback: action=parse full HTML
+        const parseUrl = 'https://fr.wikipedia.org/w/api.php?action=parse&prop=text&formatversion=2&format=json&origin=*&page=' + encodeURIComponent(title);
+        const pr = await fetch(parseUrl);
+        if (!pr.ok) throw new Error('Article fetch failed');
+        const pdata = await pr.json();
+        if (!pdata || !pdata.parse || !pdata.parse.text) throw new Error('Empty article');
+        return pdata.parse.text;
+      }
+
+      function absolutizeUrls(root) {
+        const WP = 'https://fr.wikipedia.org';
+        root.querySelectorAll('[src]').forEach(el => {
+          const src = el.getAttribute('src');
+          if (!src) return;
+          if (src.startsWith('//')) el.setAttribute('src', 'https:' + src);
+          else if (src.startsWith('/')) el.setAttribute('src', WP + src);
+        });
+        root.querySelectorAll('a[href]').forEach(a => {
+          const href = a.getAttribute('href');
+          if (!href) return;
+          if (href.startsWith('//')) a.setAttribute('href', 'https:' + href);
+          else if (href.startsWith('/')) a.setAttribute('href', WP + href);
+        });
+        // Fix inline CSS background-image urls
+        root.querySelectorAll('[style]').forEach(el => {
+          const style = el.getAttribute('style');
+          if (!style) return;
+          const fixed = style.replace(/url\((['"]?)(\/\/[^)]+)\1\)/g, 'url($1https:$2$1)')
+                             .replace(/url\((['"]?)(\/[^)]+)\1\)/g, 'url($1' + WP + '$2$1)');
+          if (fixed !== style) el.setAttribute('style', fixed);
+        });
+        // Normalize srcset URLs
+        root.querySelectorAll('img[srcset], source[srcset]').forEach(el => {
+          const srcset = el.getAttribute('srcset');
+          if (!srcset) return;
+          const fixed = srcset.split(',').map(part => {
+            const trimmed = part.trim();
+            const [url, desc] = trimmed.split(/\s+/);
+            let u = url;
+            if (u.startsWith('//')) u = 'https:' + u;
+            else if (u.startsWith('/')) u = WP + u;
+            return [u, desc].filter(Boolean).join(' ');
+          }).join(', ');
+          el.setAttribute('srcset', fixed);
+        });
+      }
+
+      function enhanceMedia(root) {
+        root.querySelectorAll('img').forEach(img => {
+          const ds = img.getAttribute('data-src');
+          const dss = img.getAttribute('data-srcset');
+          if (ds && !img.getAttribute('src')) img.setAttribute('src', ds);
+          if (dss && !img.getAttribute('srcset')) img.setAttribute('srcset', dss);
+          // Force-load if still lazy
+          img.removeAttribute('loading');
+          img.decoding = 'async';
+        });
+        root.querySelectorAll('source').forEach(source => {
+          const dss = source.getAttribute('data-srcset');
+          if (dss && !source.getAttribute('srcset')) source.setAttribute('srcset', dss);
+        });
+        // Expand collapsible sections if present
+        root.querySelectorAll('[aria-expanded="false"]').forEach(el => el.setAttribute('aria-expanded', 'true'));
+        root.querySelectorAll('.collapsible, .mw-collapsible').forEach(el => el.classList.remove('collapsible','mw-collapsible'));
+        root.querySelectorAll('.collapsed, .mw-collapsed').forEach(el => el.classList.remove('collapsed','mw-collapsed'));
+      }
+
+      // --- Lecture vocale (TTS) ---
+      let ttsState = { speaking: false };
+      // --- Edition inline ---
+      let editState = { editing: false, container: null };
+
+      // Debounce helper
+      function debounce(fn, delay = 400) {
+        let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+      }
+
+      // Fetch article Wikicode (wikitext)
+      async function fetchArticleWikitext(title) {
+        const url = `https://fr.wikipedia.org/w/api.php?origin=*&format=json&formatversion=2&action=query&prop=revisions&rvprop=content&rvslots=main&titles=${encodeURIComponent(title)}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const page = data?.query?.pages?.[0];
+        const content = page?.revisions?.[0]?.slots?.main?.content;
+        if (!content) throw new Error('Impossible de récupérer le wikicode');
+        return content;
+      }
+
+      // Transform Wikicode -> HTML using REST API
+      async function wikitextToHtml(title, wikitext) {
+        const url = 'https://fr.wikipedia.org/api/rest_v1/transform/wikitext/to/html';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wikitext, title })
+        });
+        if (!res.ok) throw new Error('Transform REST ' + res.status);
+        return await res.text();
+      }
+
+      function iconSpeaker() {
+        return '<i class="fa-solid fa-volume-high" aria-hidden="true"></i>';
+      }
+
+      function iconStop() {
+        return '<i class="fa-solid fa-stop" aria-hidden="true"></i>';
+      }
+
+      function getReadableText(root) {
+        // Collect major content text while skipping navigation, infobox, refs, etc.
+        const blacklist = new Set(['infobox','navbox','toc','references','mw-references-wrap','hatnote','mw-editsection','metadata','ambox']);
+        const nodes = Array.from(root.querySelectorAll('h2, h3, p, li'));
+        const chunks = [];
+        for (const n of nodes) {
+          // skip if inside a blacklisted container
+          let skip = false, el = n;
+          while (el && el !== root) {
+            const cl = el.classList || { contains: () => false };
+            for (const b of blacklist) { if (cl.contains && cl.contains(b)) { skip = true; break; } }
+            if (skip) break;
+            el = el.parentElement;
+          }
+          if (skip) continue;
+          const text = (n.innerText || '').replace(/\s+/g, ' ').trim();
+          if (text) chunks.push(text);
+        }
+        return chunks.join('\n');
+      }
+
+      function chunkText(str, maxLen = 1800) {
+        const sentences = str.split(/(?<=[.!?…])\s+/);
+        const out = [];
+        let cur = '';
+        for (const s of sentences) {
+          if ((cur + ' ' + s).trim().length > maxLen) { if (cur) out.push(cur.trim()); cur = s; }
+          else { cur = (cur ? cur + ' ' : '') + s; }
+        }
+        if (cur) out.push(cur.trim());
+        return out.length ? out : [str.slice(0, maxLen)];
+      }
+
+      function stopSpeak(updateBtn) {
+        try { window.speechSynthesis.cancel(); } catch(_) {}
+        ttsState.speaking = false;
+        if (updateBtn) {
+          updateBtn.classList.remove('playing');
+          updateBtn.innerHTML = iconSpeaker() + ' Écouter';
+          updateBtn.setAttribute('aria-pressed', 'false');
+        }
+      }
+
+      // Fonction pour convertir les années en format lisible
+      function convertYearToSpoken(match) {
+        const year = parseInt(match);
+        if (year >= 1000 && year <= 2099) {
+          // Pour les années entre 1000 et 2099, on utilise le format "deux mille vingt-cinq"
+          const millennium = Math.floor(year / 1000);
+          const century = Math.floor((year % 1000) / 100);
+          const decade = Math.floor((year % 100) / 10);
+          const unit = year % 10;
+
+          const numbers = {
+            1: 'un', 2: 'deux', 3: 'trois', 4: 'quatre', 5: 'cinq',
+            6: 'six', 7: 'sept', 8: 'huit', 9: 'neuf', 10: 'dix',
+            11: 'onze', 12: 'douze', 13: 'treize', 14: 'quatorze',
+            15: 'quinze', 16: 'seize', 17: 'dix-sept', 18: 'dix-huit',
+            19: 'dix-neuf', 20: 'vingt', 30: 'trente', 40: 'quarante',
+            50: 'cinquante', 60: 'soixante', 70: 'soixante-dix',
+            80: 'quatre-vingt', 90: 'quatre-vingt-dix'
+          };
+
+          let result = '';
+          if (millennium > 0) {
+            if (millennium === 1) {
+              result = 'mille';
+            } else {
+              result = numbers[millennium] + ' mille';
+            }
+          }
+          if (century > 0) {
+            if (result) result += ' ';
+            result += numbers[century] + ' cent';
+          }
+          
+          const lastTwoDigits = decade * 10 + unit;
+          if (lastTwoDigits > 0) {
+            if (result) result += ' ';
+            if (lastTwoDigits <= 20) {
+              result += numbers[lastTwoDigits];
+            } else {
+              if (decade > 0) {
+                result += numbers[decade * 10];
+                if (unit > 0) {
+                  result += '-' + numbers[unit];
+                }
+              }
+            }
+          }
+          
+          return result;
+        }
+        // Pour les autres années, retourner les chiffres séparés
+        return match.split('').join(' ');
+      }
+
+      // Fonction pour préparer le texte pour la lecture
+      function prepareTextForSpeech(text) {
+        return text
+          // Convertir les années en format lisible
+          .replace(/\b(1[0-9]{3}|20[0-9]{2})\b/g, convertYearToSpoken)
+          // Ajouter des pauses après la ponctuation
+          .replace(/([.!?]) /g, '$1, ')
+          // Gérer les tirets avec pauses
+          .replace(/\s[-–—]\s/g, ', ')
+          // Nettoyer les espaces multiples
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      function startSpeak(text, btn) {
+        if (!('speechSynthesis' in window)) { alert('La lecture vocale n\'est pas supportée par votre navigateur.'); return; }
+        stopSpeak(); // cancel any ongoing
+        const parts = chunkText(prepareTextForSpeech(text));
+        let idx = 0;
+        ttsState.speaking = true;
+        btn.classList.add('playing');
+        btn.innerHTML = iconStop() + ' Arrêter';
+        btn.setAttribute('aria-pressed', 'true');
+        const speakNext = () => {
+          if (!ttsState.speaking || idx >= parts.length) { stopSpeak(btn); return; }
+          const utt = new SpeechSynthesisUtterance(parts[idx++]);
+          utt.lang = 'fr-FR';
+          utt.rate = 0.95; // Légèrement plus lent pour plus de naturel
+          utt.pitch = 1.1; // Légèrement plus aigu pour plus de clarté
+          utt.volume = 0.95; // Volume légèrement réduit pour éviter la distorsion
+          // Sélectionner une voix française si disponible
+          const voices = window.speechSynthesis.getVoices();
+          const frVoice = voices.find(voice => voice.lang.startsWith('fr') && voice.localService);
+          if (frVoice) utt.voice = frVoice;
+          utt.onend = () => speakNext();
+          utt.onerror = () => stopSpeak(btn);
+          window.speechSynthesis.speak(utt);
+        };
+        speakNext();
+      }
+
+      function render(html, title) {
+        container.innerHTML = '';
+        // Cancel any ongoing TTS on new render
+        stopSpeak();
+        const h1 = document.createElement('h1');
+        h1.textContent = title;
+        h1.className = 'mw-article-title';
+        // Controls (Écouter / Modifier)
+        const controls = document.createElement('div');
+        controls.className = 'mw-article-controls';
+        const listenBtn = document.createElement('button');
+        listenBtn.type = 'button';
+        listenBtn.className = 'mw-audio-btn';
+        listenBtn.innerHTML = iconSpeaker() + ' Écouter';
+        listenBtn.setAttribute('aria-pressed', 'false');
+        controls.appendChild(listenBtn);
+
+        // Summary button (with Ollama)
+        const summaryBtn = document.createElement('button');
+        summaryBtn.type = 'button';
+        summaryBtn.className = 'mw-audio-btn';
+        summaryBtn.innerHTML = '<i class="fa-solid fa-quote-right" aria-hidden="true"></i> Résumé vocal';
+        summaryBtn.setAttribute('aria-pressed', 'false');
+        controls.appendChild(summaryBtn);
+        // Edit button (inline edit in app)
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'mw-edit-btn';
+        editBtn.setAttribute('aria-pressed', 'false');
+        editBtn.innerHTML = '<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Modifier l\'article';
+        controls.appendChild(editBtn);
+        // Cancel button (visible only while editing)
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'mw-cancel-edit-btn';
+        cancelBtn.innerHTML = '<i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Annuler';
+        cancelBtn.style.display = 'none';
+        controls.appendChild(cancelBtn);
+        const wrapper = document.createElement('div');
+        const style = document.createElement('style');
+        style.textContent = `
+          /* Typography */
+          .mw-article-title { font-size: 2rem; line-height: 1.25; margin: 0.2em 0 0.6em; font-weight: 600; }
+          .mw-article-view, .mw-preview { color: var(--text-color); line-height: 1.7; font-size: 16px; text-align: justify; hyphens: auto; }
+          .mw-article-view p, .mw-preview p { margin: 0.6em 0 0.8em; }
+          .mw-article-view > p:first-of-type, .mw-preview > p:first-of-type { font-size: 1.05rem; }
+          /* Ensure article links follow theme colors (override any imported styles) */
+          .mw .mw-article-view a, .mw .mw-preview a { color: var(--primary-color) !important; text-decoration: none; word-break: break-word; }
+          .mw .mw-article-view a:hover, .mw .mw-preview a:hover { color: var(--primary-dark) !important; text-decoration: underline; }
+          .mw .mw-article-view a:visited, .mw .mw-preview a:visited { color: var(--primary-color) !important; }
+          .mw-article-view h2, .mw-preview h2 { font-size: 1.5rem; border-bottom: 1px solid #a2a9b1; padding-bottom: .2em; margin-top: 1.2em; scroll-margin-top: 12px; }
+          .mw-article-view h3, .mw-preview h3 { font-size: 1.25rem; margin-top: 1em; scroll-margin-top: 12px; }
+          .mw-article-view h4, .mw-preview h4 { font-size: 1.1rem; margin-top: .8em; scroll-margin-top: 12px; }
+          .mw-article-view img, .mw-preview img { max-width: 100%; height: auto; }
+          .mw-article-view figure, .mw-preview figure { margin: 1em auto; }
+          html { scroll-behavior: smooth; }
+
+          /* Table of contents */
+          .mw-article-view .toc, .mw-preview .toc { background: #f8f9fa; border: 1px solid #a2a9b1; padding: .6em .8em; font-size: 90%; margin: 1em 0; }
+          .mw-article-view .toc .toctitle, .mw-preview .toc .toctitle { font-weight: 600; margin-bottom: .4em; }
+          .mw-article-view .toc ul, .mw-preview .toc ul { list-style: none; padding-left: 0; }
+          .mw-article-view .toc li, .mw-preview .toc li { margin: .2em 0; }
+          @media (min-width: 1100px) {
+            .mw-article-view .toc, .mw-preview .toc { float: right; width: 280px; margin-left: 1em; position: sticky; top: 12px; }
+          }
+
+          /* Infobox */
+          .mw-article-view .infobox, .mw-preview .infobox { float: right; clear: right; margin: 0 0 1em 1em; border: 1px solid #a2a9b1; background: #f8f9fa; font-size: 90%; width: 320px; max-width: 100%; }
+          .mw-article-view .infobox th, .mw-preview .infobox th, .mw-article-view .infobox td, .mw-preview .infobox td { padding: 4px 6px; border: 1px solid #eaecf0; vertical-align: top; }
+          .mw-article-view .infobox .infobox-image img, .mw-preview .infobox .infobox-image img { width: 100%; height: auto; }
+
+          /* Thumbnails */
+          .mw-article-view .thumb, .mw-preview .thumb { background: #fff; border: 1px solid #eaecf0; padding: 4px; margin: .5em; max-width: 100%; }
+          .mw-article-view .thumbcaption, .mw-preview .thumbcaption { font-size: 90%; color: #54595d; margin-top: .4em; }
+          .mw-article-view .tleft, .mw-preview .tleft { float: left; margin-right: 1em; }
+          .mw-article-view .tright, .mw-preview .tright { float: right; margin-left: 1em; }
+
+          /* Blockquotes & code */
+          .mw-article-view blockquote, .mw-preview blockquote { border-left: 3px solid #a2a9b1; padding: .4em .8em; color: #4a4a4a; background: #f8f9fa; }
+          .mw-article-view pre, .mw-preview pre, .mw-article-view code, .mw-preview code { background: #f6f6f6; border: 1px solid #eaecf0; border-radius: 4px; }
+          .mw-article-view pre, .mw-preview pre { padding: .6em; overflow: auto; }
+          .mw-article-view code, .mw-preview code { padding: .1em .3em; }
+
+          /* Tables */
+          .mw-article-view table, .mw-preview table { border-collapse: collapse; border-spacing: 0; width: 100%; margin: 1em 0; }
+          .mw-article-view table th, .mw-preview table th, .mw-article-view table td, .mw-preview table td { border: 1px solid #eaecf0; padding: 6px 8px; }
+          .mw-article-view table thead th, .mw-preview table thead th { background: #f8f9fa; position: sticky; top: 0; z-index: 1; }
+          .mw-article-view .wikitable, .mw-preview .wikitable { font-size: 95%; }
+          .mw-article-view .wikitable tr:nth-child(even), .mw-preview .wikitable tr:nth-child(even) { background: #fbfbfb; }
+          .mw-article-view caption, .mw-preview caption { caption-side: bottom; font-size: 90%; color: #54595d; padding-top: .4em; }
+          .mw-article-view .nowrap, .mw-preview .nowrap { white-space: nowrap; }
+          .mw-article-view .plainlist ul, .mw-preview .plainlist ul { list-style: none; margin: 0; padding: 0; }
+          .mw-article-view .plainlist li, .mw-preview .plainlist li { margin: .2em 0; }
+          .mw-article-view .hlist ul, .mw-preview .hlist ul { list-style: none; margin: 0; padding: 0; }
+          .mw-article-view .hlist li, .mw-preview .hlist li { display: inline; margin-right: .6em; }
+          .mw-article-view .hlist li:after, .mw-preview .hlist li:after { content: '·'; margin-left: .6em; color: #a2a9b1; }
+          .mw-article-view .hlist li:last-child:after, .mw-preview .hlist li:last-child:after { content: ''; }
+          /* Make wide tables scroll on small screens */
+          .mw-article-view table, .mw-preview table { display: block; overflow: auto; }
+
+          /* References */
+          .mw-article-view .references, .mw-article-view ol.references { font-size: 90%; color: #54595d; }
+          .mw-article-view .reference { vertical-align: super; font-size: 80%; }
+
+          /* Gallery */
+          .mw-article-view .gallery { display: flex; flex-wrap: wrap; gap: 8px; }
+          .mw-article-view .gallery .gallerybox { width: 180px; border: 1px solid #eaecf0; background: #fff; padding: 4px; }
+          .mw-article-view .gallery .gallerytext { font-size: 90%; color: #54595d; }
+
+          /* Navbox */
+          .mw-article-view .navbox { border: 1px solid #a2a9b1; background: #f8f9fa; font-size: 90%; margin: 1em 0; overflow: auto; }
+          .mw-article-view .navbox .navbox-title, .mw-article-view .navbox .navbox-abovebelow { background: #eaecf0; padding: 4px 6px; font-weight: 600; }
+
+          /* Hatnotes, disambiguation notes */
+          .mw-article-view .hatnote, .mw-preview .hatnote { background: #f8f9fa; border-left: 3px solid #a2a9b1; padding: .4em .6em; color: #54595d; margin: .6em 0; }
+
+          /* Portals/See also boxes */
+          .mw-article-view .metadata, .mw-preview .metadata, .mw-article-view .ambox, .mw-preview .ambox { border: 1px solid #a2a9b1; background: #f8f9fa; padding: .6em .8em; }
+
+          /* Responsive adjustments */
+          @media (max-width: 900px) {
+            .mw-article-view .infobox, .mw-preview .infobox { float: none; margin: 0 0 1em 0; width: 100%; }
+            .mw-article-view .tright, .mw-preview .tright, .mw-article-view .tleft, .mw-preview .tleft { float: none; margin: .6em auto; display: block; }
+            .mw-article-view .toc, .mw-preview .toc { float: none; width: auto; position: static; margin-left: 0; }
+          }
+          /* Controls bar */
+          .mw-article-controls { display: flex; align-items: center; gap: 8px; margin: .2em 0 .4em; }
+          .mw-audio-btn { appearance: none; border: 1px solid #a2a9b1; background: #f8f9fa; color: #202122; padding: .35em .6em; border-radius: 6px; cursor: pointer; font: inherit; }
+          .mw-audio-btn:hover:not(:disabled) { background: #fff; }
+          .mw-audio-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+          .mw-audio-btn.playing { background: #eef2f7; border-color: #a2a9b1; color: inherit; }
+          .mw-audio-btn i, .mw-audio-btn svg { vertical-align: text-bottom; margin-right: 6px; }
+          .mw-edit-btn { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; border: 1px solid #a2a9b1; background: #f8f9fa; color: #202122; padding: .35em .6em; border-radius: 6px; font: inherit; cursor: pointer; }
+          .mw-edit-btn:hover { background: #fff; }
+          .mw-cancel-edit-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #a2a9b1; background: #f8f9fa; color: #202122; padding: .35em .6em; border-radius: 6px; font: inherit; cursor: pointer; }
+          .mw-cancel-edit-btn:hover { background: #fff; }
+          .mw-article-view.editing { outline: 2px dashed #a2a9b1; outline-offset: 4px; }
+          /* Split editor */
+          .mw-edit-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; margin: .5em 0 1em; }
+          .mw-pane { display: flex; flex-direction: column; min-height: 60vh; border: 1px solid #eaecf0; background: #fff; border-radius: 6px; overflow: hidden; }
+          .mw-pane-label { background: #f8f9fa; border-bottom: 1px solid #eaecf0; padding: .4em .6em; font-weight: 600; color: #54595d; }
+          .mw-wikicode-editor { flex: 1 1 auto; width: 100%; padding: .6em .8em; border: 0; resize: none; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 14px; line-height: 1.5; }
+          .mw-wikicode-editor:focus { outline: none; }
+          .mw-preview { flex: 1 1 auto; padding: .6em .8em; overflow: auto; }
+          @media (max-width: 900px) { .mw-edit-split { grid-template-columns: 1fr; } }
+
+          /* Styles pour le chat Cascade Assistant */
+          .cascade-chat {
+            padding: 20px;
+            height: calc(100vh - 200px);
+            display: flex;
+            flex-direction: column;
+          }
+          .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fff;
+            border: 1px solid #eaecf0;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+          }
+          .message {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+            max-width: 80%;
+          }
+          .message.user {
+            margin-left: auto;
+            flex-direction: row-reverse;
+          }
+          .message-content {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid #eaecf0;
+            line-height: 1.4;
+          }
+          .message.user .message-content {
+            background: #e8f2ff;
+            border-color: #c8dbf8;
+          }
+          .message i {
+            font-size: 20px;
+            color: #36c;
+            margin-top: 8px;
+          }
+          .chat-input-container {
+            background: #fff;
+            border: 1px solid #eaecf0;
+            border-top: none;
+            padding: 16px;
+            border-radius: 0 0 8px 8px;
+            display: flex;
+            gap: 12px;
+          }
+          #chatInput {
+            flex: 1;
+            border: 1px solid #a2a9b1;
+            border-radius: 6px;
+            padding: 12px;
+            font: inherit;
+            resize: none;
+            min-height: 50px;
+          }
+          #chatInput:focus {
+            outline: none;
+            border-color: #36c;
+          }
+          #sendMessage {
+            background: #36c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            width: 50px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          #sendMessage:hover {
+            background: #447ff5;
+          }
+          #sendMessage:disabled {
+            background: #72727245;
+            cursor: not-allowed;
+          }
+          .cascade-chat h1 {
+            margin-bottom: 20px;
+            color: #202122;
+          }
+        `;
+        wrapper.className = 'mw-article-view';
+        wrapper.innerHTML = html;
+        const originalHTML = html; // for cancel/restore
+        enhanceMedia(wrapper);
+        absolutizeUrls(wrapper);
+        rewriteInternalLinks(wrapper);
+        container.appendChild(style);
+        container.appendChild(controls);
+        container.appendChild(h1);
+        container.appendChild(wrapper);
+
+        // Helper to re-apply enhancements after DOM mutations
+        function reEnhance() {
+          enhanceMedia(wrapper);
+          absolutizeUrls(wrapper);
+          rewriteInternalLinks(wrapper);
+        }
+
+        // Edit button logic (split view Wikicode | Prévisualisation)
+        editBtn.addEventListener('click', async () => {
+          editState.editing = !editState.editing;
+          if (editState.editing) {
+            // Enter edit mode: build split editor
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            ttsState.speaking = false;
+            listenBtn.setAttribute('aria-pressed', 'false');
+            listenBtn.classList.remove('playing');
+            listenBtn.innerHTML = iconSpeaker() + ' Écouter';
+            editBtn.setAttribute('aria-pressed', 'true');
+            editBtn.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Terminer l\'édition';
+            cancelBtn.style.display = '';
+
+            // Create split container
+            const editWrap = document.createElement('div');
+            editWrap.className = 'mw-edit-split';
+            const left = document.createElement('div'); left.className = 'mw-pane mw-pane-left';
+            const right = document.createElement('div'); right.className = 'mw-pane mw-pane-right';
+            const leftLabel = document.createElement('div'); leftLabel.className = 'mw-pane-label'; leftLabel.textContent = 'Wikicode';
+            const rightLabel = document.createElement('div'); rightLabel.className = 'mw-pane-label'; rightLabel.textContent = 'Prévisualisation';
+            const ta = document.createElement('textarea'); ta.className = 'mw-wikicode-editor'; ta.setAttribute('aria-label', 'Wikicode');
+            const preview = document.createElement('div'); preview.className = 'mw-preview';
+            left.appendChild(leftLabel); left.appendChild(ta); right.appendChild(rightLabel); right.appendChild(preview); editWrap.appendChild(left); editWrap.appendChild(right);
+            wrapper.style.display = 'none';
+            wrapper.insertAdjacentElement('afterend', editWrap);
+            editState.container = editWrap;
+
+            // Load wikicode and preview
+            try {
+              const wikitext = await fetchArticleWikitext(title);
+              ta.value = wikitext;
+              const htmlPreview = await wikitextToHtml(title, wikitext);
+              preview.innerHTML = htmlPreview;
+              // Enhance only the preview area
+              enhanceMedia(preview);
+              absolutizeUrls(preview);
+              rewriteInternalLinks(preview);
+            } catch (err) {
+              preview.textContent = 'Erreur de récupération/prévisualisation: ' + (err?.message || err);
+            }
+
+            // Live preview on input (debounced)
+            const updatePreview = debounce(async () => {
+              try {
+                const htmlPreview = await wikitextToHtml(title, ta.value);
+                preview.innerHTML = htmlPreview;
+                enhanceMedia(preview);
+                absolutizeUrls(preview);
+                rewriteInternalLinks(preview);
+              } catch (err) {
+                // keep last good preview; optionally show inline error
+              }
+            }, 500);
+            ta.addEventListener('input', updatePreview);
+
+          } else {
+            // Exit edit mode: keep current preview as article content if exists
+            editBtn.setAttribute('aria-pressed', 'false');
+            editBtn.innerHTML = '<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Modifier l\'article';
+            cancelBtn.style.display = 'none';
+            if (editState.container) {
+              const preview = editState.container.querySelector('.mw-preview');
+              if (preview) {
+                wrapper.innerHTML = preview.innerHTML;
+                reEnhance();
+              }
+              editState.container.remove();
+              editState.container = null;
+              wrapper.style.display = '';
+            }
+          }
+        });
+
+        // Cancel edit: restore original content and exit edit mode
+        cancelBtn.addEventListener('click', () => {
+          wrapper.innerHTML = originalHTML;
+          editState.editing = false;
+          editBtn.setAttribute('aria-pressed', 'false');
+          editBtn.innerHTML = '<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Modifier l\'article';
+          cancelBtn.style.display = 'none';
+          if (editState.container) { editState.container.remove(); editState.container = null; }
+          wrapper.style.display = '';
+          reEnhance();
+        });
+        document.title = 'Cascade Encylopédie';
+
+        // Check if Ollama is running
+      async function checkOllamaStatus() {
+        try {
+          const response = await fetch('http://localhost:11434/api/tags');
+          if (!response.ok) throw new Error('Ollama n\'est pas en cours d\'exécution');
+          return true;
+        } catch (err) {
+          throw new Error('Ollama n\'est pas en cours d\'exécution. Veuillez démarrer Ollama et réessayer.');
+        }
+      }
+
+      // Extrait les phrases clés d'un texte
+      function extractKeyPoints(text) {
+        // Diviser en phrases
+        const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+        
+        // Calculer la longueur moyenne des phrases
+        const avgLength = sentences.reduce((acc, s) => acc + s.length, 0) / sentences.length;
+        
+        // Filtrer et scorer les phrases
+        return sentences
+          .map(sentence => ({
+            text: sentence.trim(),
+            score: scoreSentence(sentence, avgLength)
+          }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 5)
+          .map(s => s.text);
+      }
+
+      // Score une phrase selon plusieurs critères
+      function scoreSentence(sentence, avgLength) {
+        let score = 0;
+        
+        // Longueur optimale (ni trop courte ni trop longue)
+        const lengthScore = 1 - Math.abs(sentence.length - avgLength) / avgLength;
+        score += lengthScore;
+
+        // Présence de mots clés importants
+        const keywordRegex = /\b(principal|important|essenti[ee]l|clé|majeur|fondamental|notamment|caractéris[ée]|permet|présent[ée]|définit|consiste|représente)\b/i;
+        if (keywordRegex.test(sentence)) score += 0.5;
+
+        // Éviter les phrases trop courtes
+        if (sentence.length < 30) score -= 0.5;
+
+        // Bonus pour les phrases du début (souvent plus importantes)
+        if (sentence.length > 50) score += 0.3;
+
+        return score;
+      }
+
+      // Generate summary with Ollama
+      // Fonction pour analyser la structure du texte
+      function analyzeTextStructure(text) {
+        const sections = text.split(/\n\s*\n/).filter(s => s.trim());
+        const intro = sections[0] || '';
+        const mainContent = sections.slice(1, -1).join(' ');
+        const conclusion = sections[sections.length - 1] || '';
+
+        return {
+          intro: intro.slice(0, 500),
+          mainContent,
+          conclusion: conclusion.slice(0, 300)
+        };
+      }
+
+      // Fonction pour identifier les mots-clés importants
+      function extractKeywords(text) {
+        const words = text.toLowerCase().match(/\b\w{4,}\b/g) || [];
+        const wordCount = {};
+        words.forEach(word => {
+          wordCount[word] = (wordCount[word] || 0) + 1;
+        });
+
+        return Object.entries(wordCount)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 10)
+          .map(([word]) => word);
+      }
+
+      async function generateSummary(text) {
+        try {
+          await checkOllamaStatus();
+
+          const tagsResponse = await fetch('http://localhost:11434/api/tags');
+          const tagsData = await tagsResponse.json();
+          const models = tagsData.models || [];
+          
+          if (!models.some(m => m.name === 'gemma3' || m.name === 'gemma3:latest')) {
+            console.log('Modèles disponibles:', models.map(m => m.name).join(', '));
+            throw new Error('Le modèle gemma3 n\'est pas détecté. Veuillez vérifier qu\'il est bien installé avec la commande : ollama list');
+          }
+
+          // Analyse approfondie du texte
+          const structure = analyzeTextStructure(text);
+          const keyPoints = extractKeyPoints(text);
+          const keywords = extractKeywords(text);
+          
+          // Construction d'un prompt plus intelligent
+          const prompt = `Tu es Cascade Assistant, un assistant virtuel expert, chaleureux et pédagogue. Tu as une personnalité amicale et engageante, tout en restant professionnel. Ton objectif est d'expliquer les choses de manière claire, détaillée et accessible.
+
+          Directives pour ta personnalité et ton style de réponse :
+          1. Attitude et ton :
+             - Sois chaleureux et bienveillant, comme un ami expert
+             - Montre de l'enthousiasme pour le sujet
+             - Sois empathique et compréhensif
+             - Garde un équilibre entre professionnel et accessible
+          
+          2. Structure des explications :
+             - Commence par une accroche personnalisée et engageante
+             - Développe tes idées avec des exemples concrets
+             - Utilise des analogies pour les concepts complexes
+             - Ajoute des détails intéressants et pertinents
+             - Termine par une conclusion utile ou une réflexion
+
+          3. Style d'écriture :
+             - Varie la longueur des phrases pour un rythme naturel
+             - Utilise un vocabulaire riche mais accessible
+             - Ajoute des touches d'humour léger quand approprié
+             - Pose des questions rhétoriques pour engager
+             - Anticipe et réponds aux questions possibles
+
+          Contenu à analyser :
+          - Introduction: ${structure.intro}
+          - Conclusion: ${structure.conclusion}
+          
+          Points importants :
+          ${keyPoints.map((point, i) => `${i + 1}. ${point}`).join('\n')}
+          
+          Mots-clés à intégrer naturellement : ${keywords.join(', ')}
+
+          Format à suivre :
+          1. Commence par une accroche qui capte l'attention, du type "Dans cet article fascinant..."
+          2. Structure le résumé en 3-4 paragraphes courts et clairs
+          3. Utilise ces transitions naturelles variées :
+             - "En ce qui concerne..."
+             - "Il convient de souligner que..."
+             - "De manière intéressante..."
+             - "À cet égard..."
+             - "Dans ce contexte..."
+             - "Plus précisément..."
+             - "En outre..."
+             - "Cela nous amène à..."
+             - "Pour finir..."
+          4. Explique les concepts complexes simplement
+          5. Inclus les mots-clés importants identifiés
+          6. Termine par une conclusion qui relie les idées principales
+
+          Format : Le résumé doit être optimisé pour une lecture à voix haute fluide et naturelle.
+          Longueur idéale : environ 4-5 phrases bien construites.`;
+
+          const response = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'gemma3',
+              prompt: prompt,
+              stream: false
+            })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Erreur lors de la génération du résumé');
+          }
+          
+          const data = await response.json();
+          
+          // Nettoyer et optimiser pour la lecture vocale
+          let cleanText = data.response
+            // Nettoyer le formatage
+            .replace(/\*+/g, '')
+            .replace(/\[[^\]]*\]/g, '')
+            .replace(/\([^)]*\)/g, '')
+            // Améliorer les nombres et dates
+            .replace(/(\d+)/g, (match) => {
+              const num = parseInt(match);
+              if (num >= 1000 && num <= 2099) {
+                return convertYearToSpoken(num);
+              }
+              return match.split('').join(' ');
+            })
+            // Ajouter des pauses naturelles
+            .replace(/([.!?]) /g, '$1... ')
+            // Améliorer les transitions
+            .replace(/\. (?=[A-Z])/g, '. Par ailleurs, ')
+            .replace(/\! (?=[A-Z])/g, '! En outre, ')
+            .replace(/\? (?=[A-Z])/g, '? De plus, ')
+            // Standardiser la ponctuation
+            .replace(/([.!?]){2,}/g, '$1')
+            .replace(/…/g, '...')
+            // Gérer les énumérations
+            .replace(/(\d+)\)/g, '$1... ')
+            .replace(/[•\-]\s/g, '... ')
+            // Nettoyer les espaces
+            .replace(/\s+/g, ' ')
+            .trim();
+
+          // Ajouter une introduction et une conclusion pour le contexte
+          cleanText = `Voici le résumé de l'article. ${cleanText} C'était le résumé de l'article.`;
+          
+          return cleanText;
+        } catch (err) {
+          if (err.message.includes('n\'est pas en cours d\'exécution')) {
+            throw err;
+          }
+          if (err.message.includes('n\'est pas installé')) {
+            throw err;
+          }
+          throw new Error('Erreur Ollama : ' + (err.message || 'Erreur de connexion à Ollama. Vérifiez qu\'Ollama est en cours d\'exécution.'));
+        }
+      }
+
+      // Wire TTS button
+      listenBtn.addEventListener('click', () => {
+        if (ttsState.speaking) { stopSpeak(listenBtn); return; }
+        const text = getReadableText(wrapper);
+        if (!text) return;
+        startSpeak(text, listenBtn);
+      });
+
+      // Wire summary button
+      // État du résumé
+      let summaryState = {
+        lastText: null,
+        lastSummary: null
+      };
+
+      summaryBtn.addEventListener('click', async () => {
+        if (ttsState.speaking) { 
+          stopSpeak(summaryBtn); 
+          return; 
+        }
+
+        // Désactive le bouton et montre l'état de chargement
+        summaryBtn.disabled = true;
+        summaryBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> Génération...';
+        
+        try {
+          const text = getReadableText(wrapper);
+          if (!text) {
+            throw new Error('Pas de contenu à résumer');
+          }
+          
+          let summary;
+          // Vérifie si nous avons déjà un résumé pour ce texte
+          if (summaryState.lastText === text && summaryState.lastSummary) {
+            summary = summaryState.lastSummary;
+          } else {
+            summary = await generateSummary(text);
+            if (!summary) {
+              throw new Error('Résumé vide');
+            }
+            // Sauvegarde le nouveau résumé
+            summaryState.lastText = text;
+            summaryState.lastSummary = summary;
+          }
+          
+          // Lance la lecture du résumé
+          startSpeak(summary, summaryBtn);
+          
+          // Met à jour l'interface
+          summaryBtn.disabled = false;
+          summaryBtn.innerHTML = '<i class="fa-solid fa-stop" aria-hidden="true"></i> Arrêter le résumé';
+          summaryBtn.classList.add('playing');
+        } catch (err) {
+          // Affiche une erreur plus conviviale
+          const errorMsg = document.createElement('div');
+          errorMsg.className = 'error-toast';
+          errorMsg.textContent = 'Erreur : ' + err.message;
+          document.body.appendChild(errorMsg);
+          
+          // Supprime le message d'erreur après 5 secondes
+          setTimeout(() => {
+            errorMsg.remove();
+          }, 5000);
+          
+          // Réinitialise le bouton
+          summaryBtn.disabled = false;
+          summaryBtn.innerHTML = '<i class="fa-solid fa-microphone-lines" aria-hidden="true"></i> Résumé vocal';
+          summaryBtn.classList.remove('playing');
+        }
+      });
+      }
+
+      function createChatInterface() {
+        return `
+          <div class="cascade-chat">
+            <h1>Cascade Assistant</h1>
+            <div class="chat-messages" id="chatMessages">
+              <div class="message assistant">
+                <i class="fa-solid fa-robot"></i>
+                <div class="message-content">
+                  Bonjour ! Je suis Cascade Assistant. Comment puis-je vous aider ?
+                </div>
+              </div>
+            </div>
+            <div class="chat-input-container">
+              <textarea id="chatInput" placeholder="Écrivez votre message..." rows="2"></textarea>
+              <button id="sendMessage" title="Envoyer">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      // Initialisation du chat
+      function initChat() {
+        const chatHtml = createChatInterface();
+        container.innerHTML = chatHtml;
+        
+        const input = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendMessage');
+        const messages = document.getElementById('chatMessages');
+        let isProcessing = false;
+
+        function addMessage(content, isUser = false) {
+          const messageDiv = document.createElement('div');
+          messageDiv.className = 'message ' + (isUser ? 'user' : 'assistant');
+          
+          if (!isUser) {
+            const icon = document.createElement('i');
+            icon.className = 'fa-solid fa-robot';
+            messageDiv.appendChild(icon);
+          }
+
+          const contentDiv = document.createElement('div');
+          contentDiv.className = 'message-content';
+          contentDiv.textContent = content;
+          messageDiv.appendChild(contentDiv);
+          
+          messages.appendChild(messageDiv);
+          messages.scrollTop = messages.scrollHeight;
+        }
+
+        async function handleMessage() {
+          if (isProcessing || !input.value.trim()) return;
+          
+          const userMessage = input.value.trim();
+          input.value = '';
+          addMessage(userMessage, true);
+          
+          isProcessing = true;
+          sendButton.disabled = true;
+          
+          try {
+            const response = await fetch('http://localhost:11434/api/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: 'gemma3',
+                prompt: userMessage,
+                stream: false
+              })
+            });
+            
+            if (!response.ok) throw new Error('Erreur de communication');
+            const data = await response.json();
+            const reply = data.response.replace(/\*+/g, '').trim();
+            addMessage(reply);
+            chatHistory.push({ role: 'assistant', content: reply });
+          } catch (err) {
+            addMessage('Désolé, je rencontre des difficultés techniques. Veuillez réessayer.');
+            console.error('Erreur:', err);
+          } finally {
+            isProcessing = false;
+            sendButton.disabled = false;
+            input.focus();
+          }
+        }
+
+        // Événements
+        sendButton.addEventListener('click', handleMessage);
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleMessage();
+          }
+        });
+
+        // Focus initial
+        input.focus();
+      }
+
+      async function handleSubmit(e) {
+        e.preventDefault();
+        const q = (input.value || '').trim();
+        if (!q) return;
+        container.textContent = 'Chargement de l\'article…';
+        try {
+          const title = await searchTitle(q);
+          if (!title) { container.textContent = 'Aucun résultat pour: ' + q; return; }
+          const html = await fetchArticleHTML(title);
+          render(html, title);
+        } catch (err) {
+          container.textContent = 'Erreur de chargement: ' + (err && err.message ? err.message : err);
+        }
+      }
+
+      function extractTitleFromHref(href) {
+        try {
+          // Accept absolute fr.wikipedia.org URLs, protocol-relative, and path-only /wiki/...
+          if (!href) return null;
+          // Anchor links within page
+          if (href.startsWith('#')) return null;
+          const WP = 'https://fr.wikipedia.org';
+          let urlStr = href;
+          if (href.startsWith('//')) urlStr = 'https:' + href;
+          else if (href.startsWith('/')) urlStr = WP + href;
+          else if (href.startsWith('./')) urlStr = WP + '/wiki/' + href.slice(2);
+          else if (href.startsWith('index.php') || href.startsWith('/w/index.php')) urlStr = WP + '/' + href.replace(/^\/?/, '');
+          const u = new URL(urlStr);
+          if (u.hostname !== 'fr.wikipedia.org') return null;
+          if (u.pathname.startsWith('/wiki/')) {
+            let slug = u.pathname.substring('/wiki/'.length);
+            // Drop fragment
+            slug = slug.split('#')[0];
+            if (!slug) return null;
+            return decodeURIComponent(slug).replace(/_/g, ' ');
+          }
+          if (u.pathname === '/w/index.php' && u.searchParams.has('title')) {
+            const t = u.searchParams.get('title');
+            if (!t) return null;
+            return decodeURIComponent(t).split('#')[0].replace(/_/g, ' ');
+          }
+          return null;
+        } catch (_) { return null; }
+      }
+
+      function setupLinkInterception() {
+        // Use capture on document to intercept before navigation, robust to nested markup
+        document.addEventListener('click', async (e) => {
+          // Only left-click without modifier keys
+          if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+          const target = e.target.closest ? e.target.closest('a') : null;
+          if (!target) return;
+          // Only handle clicks inside our rendered container
+          if (!container.contains(target)) return;
+          // If editing, block navigation entirely to avoid losing edits
+          if (editState && editState.editing) { e.preventDefault(); return; }
+          // Allow bypass links (e.g., edit button) and explicit new-tab links
+          if (target.getAttribute('target') === '_blank' || target.hasAttribute('data-bypass')) return;
+          const title = target.dataset && target.dataset.wpTitle ? target.dataset.wpTitle : extractTitleFromHref(target.getAttribute('href'));
+          if (!title) return;
+          e.preventDefault();
+          container.textContent = 'Chargement de l\'article…';
+          try {
+            const html = await fetchArticleHTML(title);
+            render(html, title);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } catch (err) {
+            container.textContent = 'Erreur de chargement: ' + (err && err.message ? err.message : err);
+          }
+        }, true);
+      }
+
+      form.addEventListener('submit', handleSubmit);
+
+      // Fonction pour créer l'interface de chat
+      function createChatInterface() {
+        container.innerHTML = `
+          <div class="cascade-chat">
+            <h1 class="chat-title">
+              <img src="cascade.ico" alt="Logo" class="cascade-icon">
+              Cascade Encylopédie
+            </h1>
+            <div class="chat-container">
+              <div id="chatMessages" class="chat-messages">
+                <div class="message assistant">
+                  <img src="cascade.ico" alt="Cascade" class="cascade-icon">
+                  <div class="message-content">
+                    Bonjour ! Je suis Cascade Assistant, votre guide pour explorer et comprendre les articles. Comment puis-je vous aider aujourd'hui ?
+                    <div class="message-actions">
+                      <button class="msg-btn copy-btn" title="Copier le message" aria-label="Copier le message">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copier</span>
+                      </button>
+                      <button class="msg-btn speak-btn" title="Écouter le message" aria-label="Écouter le message">
+                        <i class="fa-solid fa-volume-high"></i>
+                        <span>Écouter</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="chat-input-wrapper">
+                <textarea 
+                  id="chatInput" 
+                  placeholder="Posez votre question..." 
+                  rows="1"
+                  class="chat-input"
+                ></textarea>
+                <button id="sendMessage" class="chat-send-btn">
+                  <i class="fa-solid fa-paper-plane"></i>
+                </button>
+              </div>
+            </div>
+            <div class="chat-disclaimer" role="note" aria-live="polite">Cascade Assistant peut se tromper dans ses réponses.</div>
+          </div>
+        `;
+
+        // Ajout des styles spécifiques au chat
+        const chatStyle = document.createElement('style');
+        chatStyle.textContent = `
+          .cascade-chat {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 1em;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+          }
+
+          .chat-title {
+            border-bottom: 1px solid #a2a9b1;
+            color: #202122;
+            font-family: 'Linux Libertine', Georgia, Times, serif;
+            font-size: 1.8em;
+            font-weight: normal;
+            margin: .5em 0 .5em;
+            padding: 0 0 .17em;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+          
+          .chat-title img.cascade-icon {
+            width: 24px;
+            height: 24px;
+            vertical-align: middle;
+            margin-right: 8px;
+          }
+
+          .chat-container {
+            background: #ffffff;
+            border: 1px solid #a2a9b1;
+            border-radius: 2px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(90vh - 200px);
+          }
+
+          .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1em;
+            display: flex;
+            flex-direction: column;
+            gap: 1em;
+            background: #ffffff;
+          }
+
+          .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            max-width: 85%;
+            transition: opacity 0.2s ease;
+          }
+
+          .message.user {
+            margin-left: auto;
+            flex-direction: row-reverse;
+          }
+
+          .cascade-icon {
+            width: 20px;
+            height: 20px;
+            margin-top: 4px;
+          }
+
+          .message-content {
+            background: #f8f9fa;
+            padding: 12px;
+            border: 1px solid #a2a9b1;
+            line-height: 1.6;
+            font-size: 0.875rem;
+            color: #202122;
+          }
+
+          .message-prefix {
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #54595d;
+          }
+
+          .message.user .message-content {
+            background: #eaf3ff;
+            border-color: #a2a9b1;
+            color: #202122;
+          }
+
+          .message.user .message-prefix {
+            color: #36c;
+          }
+
+          .chat-input-wrapper {
+            padding: 1em;
+            background: #f8f9fa;
+            border-top: 1px solid #a2a9b1;
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+          }
+
+          .chat-input {
+            flex: 1;
+            border: 1px solid #a2a9b1;
+            padding: 8px;
+            font-size: 0.875rem;
+            font-family: inherit;
+            resize: none;
+            background: #ffffff;
+            min-height: 24px;
+            max-height: 150px;
+          }
+
+          .chat-input:focus {
+            outline: none;
+            border-color: #36c;
+            box-shadow: inset 0 0 0 1px #36c;
+          }
+
+          .chat-send-btn {
+            background: #ffffff;
+            color: #202122;
+            border: 1px solid #a2a9b1;
+            padding: 6px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.1s;
+            min-width: 32px;
+            height: 32px;
+          }
+
+          .chat-send-btn:hover {
+            background: #f8f9fa;
+            border-color: #72777d;
+          }
+
+          .chat-send-btn:disabled {
+            background: #f8f9fa;
+            border-color: #c8ccd1;
+            color: #72777d;
+            cursor: not-allowed;
+          }
+
+          .chat-messages::-webkit-scrollbar {
+            width: 8px;
+          }
+
+          .chat-messages::-webkit-scrollbar-track {
+            background: #F7F9FC;
+          }
+
+          .chat-messages::-webkit-scrollbar-thumb {
+            background: #BDC3C7;
+            border-radius: 4px;
+          }
+
+          .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #95A5A6;
+          }
+
+          .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+          }
+
+          .msg-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border: 1px solid #c8ccd1;
+            background: #fff;
+            color: #202122;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 2px;
+          }
+
+          .msg-btn:hover { background: #f8f9fa; }
+          .msg-btn i { font-size: 12px; }
+
+          .chat-disclaimer {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #72777d;
+            text-align: center;
+          }
+
+          @media (max-width: 768px) {
+            .cascade-chat {
+              padding: 10px;
+            }
+            .message {
+              max-width: 90%;
+            }
+            .chat-input-wrapper {
+              padding: 15px;
+            }
+          }
+        `;
+        document.head.appendChild(chatStyle);
+
+        // Initialisation des événements du chat
+        const input = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendMessage');
+        const messages = document.getElementById('chatMessages');
+        let isProcessing = false;
+        // Historique simple de conversation (en mémoire)
+        const CHAT_KEY = 'cascade_chat_history';
+        let chatHistory = [];
+
+        function saveHistory() {
+          try { localStorage.setItem(CHAT_KEY, JSON.stringify(chatHistory)); } catch (_) {}
+        }
+
+        function loadHistory() {
+          try {
+            const raw = localStorage.getItem(CHAT_KEY);
+            if (raw) chatHistory = JSON.parse(raw);
+          } catch (_) { chatHistory = []; }
+        }
+
+        loadHistory();
+
+        function adjustTextareaHeight(textarea) {
+          textarea.style.height = 'auto';
+          textarea.style.height = (textarea.scrollHeight) + 'px';
+        }
+
+        // Normalisation pour la détection d'intentions (sans accents/ponctuation)
+        function normalizeText(s) {
+          return (s || '')
+            .toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // retirer accents
+            .replace(/[^a-z0-9\s]/g, ' ') // retirer ponctuation
+            .replace(/\s+/g, ' ') // espaces multiples -> simple
+            .trim();
+        }
+
+        // Nettoyage de la réponse du modèle (enlever balises de source automatiques, espaces multiples)
+        function sanitizeResponse(s) {
+          if (!s) return '';
+          let out = s.replace(/\*+/g, '');
+          out = out.replace(/\[\s*source[^\]]*\]/gi, '');
+          out = out.replace(/\s{2,}/g, ' ').trim();
+          return out;
+        }
+
+        // Extraire un sujet pour les questions de définition ("c'est quoi X?", "qu'est-ce que X?")
+        function extractDefinitionTopic(userNorm) {
+          // Patterns communs en texte normalisé
+          const patterns = [
+            /^(qu est ce que|quest ce que)\s+(.+)$/,
+            /^(c est quoi|cest quoi)\s+(.+)$/,
+            /^(quelle est la definition de|definition de)\s+(.+)$/,
+            /^(.+)\s+(qu est ce que c est|quest ce que c est)$/,
+            /^(.+)\s+(c est quoi|cest quoi)$/
+          ];
+          for (const re of patterns) {
+            const m = userNorm.match(re);
+            if (m) {
+              // sujet peut être groupe 2 ou 1 selon le pattern
+              const candidate = (m[2] || m[1] || '').trim();
+              if (candidate) return cleanupTopic(candidate);
+            }
+          }
+          return null;
+        }
+
+        function cleanupTopic(s) {
+          // Retirer articles français en tête, ponctuation finale, singulariser simple
+          let t = (s || '').trim();
+          t = t.replace(/^(?:les|la|le|des|du|de la|de l'|d'|un|une|l')\s+/i, '');
+          t = t.replace(/\?+$/g, '').trim();
+          // Singularisation naïve (pluriel en s)
+          if (t.length > 3 && /[a-z]s$/i.test(t) && !/[sS]{2}$/.test(t)) {
+            t = t.replace(/s$/i, '');
+          }
+          // Capitaliser
+          if (t) t = t.charAt(0).toUpperCase() + t.slice(1);
+          if (t.length > 80) t = t.slice(0, 80);
+          return t;
+        }
+
+        function normalizeForCompare(x) {
+          return (x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        }
+
+        async function fetchWikipediaSummary(topic) {
+          const cleaned = cleanupTopic(topic);
+          const title = cleaned.replace(/\s+/g, '_');
+          const restUrl = `https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+          try {
+            const resp = await fetch(restUrl, { headers: { 'Accept': 'application/json' } });
+            if (resp.ok) {
+              const data = await resp.json();
+              if (data && data.extract) {
+                return { extract: data.extract, url: data.content_urls?.desktop?.page || data.extract_html?.match(/href=\"([^\"]+)\"/)?.[1] };
+              }
+            }
+          } catch (_) {}
+          // Fallback: opensearch pour trouver le bon titre
+          try {
+            const qs = encodeURIComponent(cleaned);
+            const searchUrl = `https://fr.wikipedia.org/w/api.php?action=opensearch&search=${qs}&limit=5&namespace=0&format=json&origin=*`;
+            const sresp = await fetch(searchUrl);
+            if (sresp.ok) {
+              const arr = await sresp.json();
+              const titles = (arr && arr[1]) || [];
+              // Préférer correspondance exacte (sans accents), sinon qui commence par le sujet, sinon premier
+              const normClean = normalizeForCompare(cleaned);
+              let best = titles.find(t => normalizeForCompare(t) === normClean)
+                       || titles.find(t => normalizeForCompare(t).startsWith(normClean))
+                       || titles[0];
+              if (best) {
+                const r2 = await fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(best)}`);
+                if (r2.ok) {
+                  const d2 = await r2.json();
+                  if (d2 && d2.extract) {
+                    return { extract: d2.extract, url: d2.content_urls?.desktop?.page };
+                  }
+                }
+              }
+            }
+          } catch (_) {}
+          return null;
+        }
+
+        function firstSentences(text, maxSentences = 2) {
+          const parts = (text || '').split(/(?<=\.)\s+/).filter(Boolean);
+          return parts.slice(0, maxSentences).join(' ');
+        }
+
+        function addMessage(content, isUser = false) {
+          const messageDiv = document.createElement('div');
+          messageDiv.className = 'message ' + (isUser ? 'user' : 'assistant');
+          
+          if (!isUser) {
+            const icon = document.createElement('i');
+            icon.className = 'fa-solid fa-robot';
+            messageDiv.appendChild(icon);
+          }
+
+          const contentDiv = document.createElement('div');
+          contentDiv.className = 'message-content';
+          contentDiv.textContent = content;
+          messageDiv.appendChild(contentDiv);
+          
+          messages.appendChild(messageDiv);
+          messages.scrollTop = messages.scrollHeight;
+        }
+
+        async function handleMessage() {
+          if (isProcessing || !input.value.trim()) return;
+          
+          const userMessageRaw = input.value.trim();
+          const userMessage = userMessageRaw; // conserver casse pour l'affichage et l'historique
+          const userNorm = normalizeText(userMessageRaw);
+          input.value = '';
+          input.style.height = 'auto';
+          addMessage(userMessage, true);
+          chatHistory.push({ role: 'user', content: userMessage });
+          saveHistory();
+          
+          isProcessing = true;
+          sendButton.disabled = true;
+          sendButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+          // Détecter les questions sur l'identité
+          const identityQuestions = [
+            'qui es tu', 'qui es tu', 'qui etes vous', 'qui etes vous',
+            't es qui', 't est qui', 'tu es qui',
+            'tu es quoi', 'tu est quoi', 'que es tu', 'ques tu',
+            'presente toi', 'presente toi', 'parle moi de toi', 'parle moi de toi',
+            'tu sers a quoi', 'a quoi tu sers', 'a quoi sert tu'
+          ];
+
+          if (identityQuestions.some(q => userNorm.includes(q))) {
+            const identityReply = "Je suis Cascade Assistant, une IA conçue pour vous aider à explorer l’encyclopédie : répondre à vos questions, clarifier des notions et vous guider vers les bonnes pages. Que souhaitez‑vous savoir ?";
+            addMessage(identityReply);
+            chatHistory.push({ role: 'assistant', content: identityReply });
+            saveHistory();
+            isProcessing = false;
+            sendButton.disabled = false;
+            sendButton.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+            input.focus();
+            return;
+          }
+          
+          try {
+            // 1) Définition via Wikipédia si applicable
+            const topic = extractDefinitionTopic(userNorm);
+            if (topic) {
+              const wiki = await fetchWikipediaSummary(topic);
+              if (wiki && wiki.extract) {
+                const summary = firstSentences(wiki.extract, 2);
+                const source = wiki.url || `https://fr.wikipedia.org/wiki/${encodeURIComponent(cleanupTopic(topic).replace(/\s+/g,'_'))}`;
+                const reply = `${summary}\n\nSource: ${source}`;
+                addMessage(reply);
+                chatHistory.push({ role: 'assistant', content: reply });
+                saveHistory();
+                isProcessing = false;
+                sendButton.disabled = false;
+                sendButton.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+                input.focus();
+                return;
+              }
+            }
+
+            // Construire un prompt avec l'historique
+            const historyText = chatHistory.map(m => `${m.role === 'user' ? 'Utilisateur' : 'Assistant'}: ${m.content}`).join('\n');
+            const baseInstructions = `Tu es Cascade Assistant, une IA créée pour aider les utilisateurs à explorer et comprendre l'encyclopédie. Tu dois toujours répondre en tant que Cascade Assistant et jamais en tant que Gemma ou une autre IA. En tant qu'assistant encyclopédique, tu dois : 1) Répondre de manière factuelle et objective, 2) Citer tes sources quand c'est possible, 3) Admettre quand tu n'es pas sûr d'une information, 4) Encourager la vérification des informations.`;
+            const fullPrompt = `${baseInstructions}\n\nHistorique de la conversation:\n${historyText}\n\nNouvelle requête de l'utilisateur:\n${userMessage}\n\nRéponds de manière cohérente avec le contexte de la conversation.`;
+
+            const response = await fetch('http://localhost:11434/api/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: 'gemma3',
+                prompt: fullPrompt,
+                stream: false
+              })
+            });
+            
+            if (!response.ok) throw new Error('Erreur de communication');
+            const data = await response.json();
+            const reply = sanitizeResponse(data.response);
+            addMessage(reply);
+            chatHistory.push({ role: 'assistant', content: reply });
+            saveHistory();
+          } catch (err) {
+            addMessage('Désolé, je rencontre des difficultés techniques. Veuillez réessayer.');
+            console.error('Erreur:', err);
+          } finally {
+            isProcessing = false;
+            sendButton.disabled = false;
+            sendButton.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+            input.focus();
+          }
+        }
+
+        // Au chargement de l'interface, si un historique existe, on le rend et on supprime le message de bienvenue statique
+        (function renderExistingHistory() {
+          if (!chatHistory || chatHistory.length === 0) {
+            // Pas d'historique -> enregistrer le message de bienvenue présent dans le DOM
+            const initialAssistant = messages.querySelector('.message.assistant .message-content')?.textContent?.trim();
+            if (initialAssistant) {
+              chatHistory.push({ role: 'assistant', content: initialAssistant });
+              saveHistory();
+            }
+            return;
+          }
+          // Historique présent -> re-render propre
+          messages.innerHTML = '';
+          for (const m of chatHistory) {
+            addMessage(m.content, m.role === 'user');
+          }
+        })();
+
+        function addMessage(content, isUser = false) {
+          const messageDiv = document.createElement('div');
+          messageDiv.className = 'message ' + (isUser ? 'user' : 'assistant');
+          
+          if (!isUser) {
+            const icon = document.createElement('img');
+            icon.src = 'cascade.ico';
+            icon.alt = 'Cascade';
+            icon.className = 'cascade-icon';
+            messageDiv.appendChild(icon);
+          }
+
+          const contentDiv = document.createElement('div');
+          contentDiv.className = 'message-content';
+          contentDiv.textContent = content;
+          messageDiv.appendChild(contentDiv);
+
+          // Actions (assistant uniquement)
+          if (!isUser) {
+            const actions = document.createElement('div');
+            actions.className = 'message-actions';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'msg-btn copy-btn';
+            copyBtn.title = 'Copier le message';
+            copyBtn.setAttribute('aria-label', 'Copier le message');
+            copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i><span>Copier</span>';
+
+            const speakBtn = document.createElement('button');
+            speakBtn.className = 'msg-btn speak-btn';
+            speakBtn.title = 'Écouter le message';
+            speakBtn.setAttribute('aria-label', 'Écouter le message');
+            speakBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i><span>Écouter</span>';
+
+            actions.appendChild(copyBtn);
+            actions.appendChild(speakBtn);
+            contentDiv.appendChild(actions);
+          }
+          
+          messages.appendChild(messageDiv);
+          messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Gestion de la taille automatique du textarea
+        input.addEventListener('input', () => {
+          adjustTextareaHeight(input);
+        });
+
+        // Événements
+        sendButton.addEventListener('click', handleMessage);
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleMessage();
+          }
+        });
+
+        // Gestion des actions (copier / écouter) via délégation
+        let currentUtterance = null;
+        messages.addEventListener('click', async (e) => {
+          const target = e.target.closest('button');
+          if (!target) return;
+
+          const messageElem = target.closest('.message');
+          if (!messageElem || !messageElem.classList.contains('assistant')) return;
+          const contentText = messageElem.querySelector('.message-content')?.textContent || '';
+
+          if (target.classList.contains('copy-btn')) {
+            try {
+              if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(contentText);
+              } else {
+                const ta = document.createElement('textarea');
+                ta.value = contentText;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+              }
+              target.innerHTML = '<i class="fa-solid fa-check"></i><span>Copié</span>';
+              setTimeout(() => target.innerHTML = '<i class="fa-regular fa-copy"></i><span>Copier</span>', 1200);
+            } catch (_) {
+              target.innerHTML = '<i class="fa-solid fa-xmark"></i><span>Échec</span>';
+              setTimeout(() => target.innerHTML = '<i class="fa-regular fa-copy"></i><span>Copier</span>', 1200);
+            }
+          }
+
+          if (target.classList.contains('speak-btn')) {
+            try {
+              if (!('speechSynthesis' in window)) {
+                target.innerHTML = '<i class="fa-solid fa-xmark"></i><span>Indisp.</span>';
+                setTimeout(() => target.innerHTML = '<i class="fa-solid fa-volume-high"></i><span>Écouter</span>', 1200);
+                return;
+              }
+              // Stop current
+              if (window.speechSynthesis.speaking || window.speechSynthesis.paused) {
+                window.speechSynthesis.cancel();
+                if (currentUtterance && currentUtterance.__btn) {
+                  currentUtterance.__btn.innerHTML = '<i class="fa-solid fa-volume-high"></i><span>Écouter</span>';
+                }
+              }
+              // Speak
+              const utt = new SpeechSynthesisUtterance(contentText);
+              utt.lang = 'fr-FR';
+              utt.rate = 1;
+              utt.pitch = 1;
+              currentUtterance = utt;
+              currentUtterance.__btn = target;
+              target.innerHTML = '<i class="fa-solid fa-stop"></i><span>Stop</span>';
+              window.speechSynthesis.speak(utt);
+              utt.onend = () => {
+                if (target) target.innerHTML = '<i class="fa-solid fa-volume-high"></i><span>Écouter</span>';
+                currentUtterance = null;
+              };
+              utt.onerror = () => {
+                if (target) target.innerHTML = '<i class="fa-solid fa-volume-high"></i><span>Écouter</span>';
+                currentUtterance = null;
+              };
+            } catch (_) {
+              target.innerHTML = '<i class="fa-solid fa-volume-high"></i><span>Écouter</span>';
+            }
+          }
+        });
+
+        // Focus initial
+        input.focus();
+      }
+
+      // Gestionnaire de clic pour le lien Cascade Assistant
+      document.querySelectorAll('nav a').forEach(link => {
+        if (link.textContent === 'Cascade Assistant') {
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            createChatInterface();
+          });
+        }
+      });
+
+      setupLinkInterception();
+      // Load home article on startup
+      (async () => {
+        container.textContent = 'Chargement de l\'accueil…';
+        try {
+          const html = await fetchArticleHTML(HOME_TITLE);
+          render(html, HOME_TITLE);
+        } catch (err) {
+          container.textContent = 'Erreur de chargement de l\'accueil: ' + (err && err.message ? err.message : err);
+        }
+      })();
+      // Clicking the logo returns to home
+      const logo = document.querySelector('.mw-logo');
+      if (logo) {
+        logo.addEventListener('click', async (e) => {
+          e.preventDefault();
+          container.textContent = 'Chargement de l\'accueil…';
+          try {
+            const html = await fetchArticleHTML(HOME_TITLE);
+            render(html, HOME_TITLE);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } catch (err) {
+            container.textContent = 'Erreur de chargement de l\'accueil: ' + (err && err.message ? err.message : err);
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
