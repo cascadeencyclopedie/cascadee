@@ -1064,39 +1064,18 @@
           const keywords = extractKeywords(text);
           
           // Construction d'un prompt plus intelligent
-          const prompt = `Tu es Cascade Assistant, un assistant virtuel expert, chaleureux et pédagogue. Tu as une personnalité amicale et engageante, tout en restant professionnel. Ton objectif est d'expliquer les choses de manière claire, détaillée et accessible.
+          const prompt = `En tant qu'expert en résumé et narration, crée un résumé engageant et naturel en français.
 
-          Directives pour ta personnalité et ton style de réponse :
-          1. Attitude et ton :
-             - Sois chaleureux et bienveillant, comme un ami expert
-             - Montre de l'enthousiasme pour le sujet
-             - Sois empathique et compréhensif
-             - Garde un équilibre entre professionnel et accessible
-          
-          2. Structure des explications :
-             - Commence par une accroche personnalisée et engageante
-             - Développe tes idées avec des exemples concrets
-             - Utilise des analogies pour les concepts complexes
-             - Ajoute des détails intéressants et pertinents
-             - Termine par une conclusion utile ou une réflexion
-
-          3. Style d'écriture :
-             - Varie la longueur des phrases pour un rythme naturel
-             - Utilise un vocabulaire riche mais accessible
-             - Ajoute des touches d'humour léger quand approprié
-             - Pose des questions rhétoriques pour engager
-             - Anticipe et réponds aux questions possibles
-
-          Contenu à analyser :
+          Structure de l'article :
           - Introduction: ${structure.intro}
           - Conclusion: ${structure.conclusion}
-          
-          Points importants :
-          ${keyPoints.map((point, i) => `${i + 1}. ${point}`).join('\n')}
-          
-          Mots-clés à intégrer naturellement : ${keywords.join(', ')}
 
-          Format à suivre :
+          Mots-clés importants : ${keywords.join(', ')}
+
+          Points clés à couvrir :
+          ${keyPoints.map((point, i) => `${i + 1}. ${point}`).join('\n')}
+
+          Directives pour le résumé :
           1. Commence par une accroche qui capte l'attention, du type "Dans cet article fascinant..."
           2. Structure le résumé en 3-4 paragraphes courts et clairs
           3. Utilise ces transitions naturelles variées :
