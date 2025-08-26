@@ -8,10 +8,8 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const publicDir = path.join(__dirname, 'public');
-
-// Serve static assets
-app.use(express.static(publicDir, { extensions: ['html'] }));
+// Serve static assets from root directory
+app.use(express.static(__dirname, { extensions: ['html'] }));
 
 // Basic health endpoint
 app.get('/health', (req, res) => {
@@ -20,7 +18,7 @@ app.get('/health', (req, res) => {
 
 // Fallback to index.html
 app.get('*', (req, res) => {
-  res.sendFile(path.join(publicDir, 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
