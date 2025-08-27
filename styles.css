@@ -197,6 +197,18 @@ body {
   .mw-search {
     margin: var(--space-sm) 0;
     max-width: 100%;
+    width: 100%;
+    position: relative;
+  }
+
+  .mw-search-input,
+  .mw-search-btn {
+    height: 44px; /* Meilleure zone tactile */
+  }
+
+  .mw-search-btn {
+    white-space: nowrap;
+    padding: var(--space-sm);
   }
 }
 
@@ -206,9 +218,13 @@ body {
   border-radius: 2px 0 0 2px;
   flex: 1;
   max-width: 100%;
+  min-width: 0; /* Empêche le dépassement */
   font-size: var(--text-base);
   transition: border-color 0.2s ease;
   border-right: none; /* attach to button */
+  text-overflow: ellipsis; /* Ajoute ... si le texte est trop long */
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .mw-search-input:focus {
@@ -652,20 +668,66 @@ button,
   .mw-article {
     width: 100%;
     overflow-x: hidden;
+    word-wrap: break-word; /* Permet aux longs mots de se couper */
+    overflow-wrap: break-word;
   }
 
+  /* Gestion des images et médias */
   .mw-article img,
   .mw-article figure,
   .mw-article iframe {
-    max-width: 100vw !important;
-    margin-left: calc(-1 * var(--space-sm));
-    margin-right: calc(-1 * var(--space-sm));
-    width: calc(100% + (2 * var(--space-sm)));
+    max-width: 100% !important;
+    height: auto !important;
+    margin: var(--space-sm) auto;
+    display: block;
+    object-fit: contain;
+  }
+
+  /* Conteneur pour les images qui peuvent être trop grandes */
+  .mw-article figure {
+    max-width: 100% !important;
+    margin: var(--space-md) auto;
+  }
+
+  .mw-article figure img {
+    margin: 0 auto;
+  }
+
+  /* Gestion des légendes d'images */
+  .mw-article figcaption {
+    font-size: 14px;
+    color: var(--text-light);
+    text-align: center;
+    padding: var(--space-xs);
+    word-wrap: break-word;
   }
 
   .mw-article table {
-    max-width: calc(100vw - (2 * var(--space-sm)));
+    width: 100%;
+    max-width: 100%;
     font-size: 14px;
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-collapse: collapse;
+    margin: var(--space-md) 0;
+  }
+
+  /* Amélioration des tableaux sur mobile */
+  .mw-article td,
+  .mw-article th {
+    min-width: 120px; /* Évite les cellules trop étroites */
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--border-color);
+    white-space: normal; /* Permet le retour à la ligne dans les cellules */
+    word-wrap: break-word;
+  }
+
+  /* Gestion des liens longs */
+  .mw-article a {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
 
   .mw-article p {
