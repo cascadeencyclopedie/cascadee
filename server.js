@@ -82,13 +82,12 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Ports
-const HTTP_PORT = process.env.PORT || 3000;
-const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
+// Port (Render utilise la variable PORT)
+const PORT = process.env.PORT || 3000;
 
-// Démarrer le serveur HTTP
-app.listen(HTTP_PORT, () => {
-  console.log(`Serveur HTTP en cours d'exécution sur http://localhost:${HTTP_PORT}`);
+// Démarrer le serveur
+app.listen(PORT, () => {
+  console.log(`Serveur en cours d'exécution sur le port ${PORT}`);
 });
 
 // Générer des certificats avec OpenSSL si nécessaire
