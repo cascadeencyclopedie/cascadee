@@ -965,10 +965,19 @@
         });
         document.title = 'Cascade Encylopédie';
 
-        // Check if Ollama is running
+        // Fonction utilitaire pour obtenir l'URL de l'API en fonction de l'environnement
+      function getApiUrl(endpoint) {
+        const isGitHubPages = window.location.hostname === 'cascadeencyclopedie.github.io';
+        const baseUrl = isGitHubPages 
+          ? 'https://cascade-proxy.herokuapp.com/ollama'  // URL du proxy HTTPS déployé
+          : 'http://localhost:11434';
+        return `${baseUrl}${endpoint}`;
+      }
+
+      // Check if Ollama is running
       async function checkOllamaStatus() {
         try {
-          const response = await fetch('http://localhost:11434/api/tags');
+          const response = await fetch(getApiUrl('/api/tags'));
           if (!response.ok) throw new Error('Ollama n\'est pas en cours d\'exécution');
           return true;
         } catch (err) {
@@ -1049,7 +1058,7 @@
         try {
           await checkOllamaStatus();
 
-          const tagsResponse = await fetch('http://localhost:11434/api/tags');
+          const tagsResponse = await fetch(getApiUrl('/api/tags'));
           const tagsData = await tagsResponse.json();
           const models = tagsData.models || [];
           
@@ -1095,7 +1104,7 @@
           Format : Le résumé doit être optimisé pour une lecture à voix haute fluide et naturelle.
           Longueur idéale : environ 4-5 phrases bien construites.`;
 
-          const response = await fetch('http://localhost:11434/api/generate', {
+          const response = await fetch(getApiUrl('/api/generate'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1291,7 +1300,7 @@
           sendButton.disabled = true;
           
           try {
-            const response = await fetch('http://localhost:11434/api/generate', {
+            const response = await fetch(getApiUrl('/api/generate'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -1868,7 +1877,7 @@
             const baseInstructions = `Tu es Cascade Assistant, une IA créée pour aider les utilisateurs à explorer et comprendre l'encyclopédie. Tu dois toujours répondre en tant que Cascade Assistant et jamais en tant que Gemma ou une autre IA. En tant qu'assistant encyclopédique, tu dois : 1) Répondre de manière factuelle et objective, 2) Citer tes sources quand c'est possible, 3) Admettre quand tu n'es pas sûr d'une information, 4) Encourager la vérification des informations.`;
             const fullPrompt = `${baseInstructions}\n\nHistorique de la conversation:\n${historyText}\n\nNouvelle requête de l'utilisateur:\n${userMessage}\n\nRéponds de manière cohérente avec le contexte de la conversation.`;
 
-            const response = await fetch('http://localhost:11434/api/generate', {
+            const response = await fetch(getApiUrl('/api/generate'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
