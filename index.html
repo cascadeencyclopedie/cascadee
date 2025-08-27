@@ -641,13 +641,7 @@
         listenBtn.setAttribute('aria-pressed', 'false');
         controls.appendChild(listenBtn);
 
-        // Summary button (with Ollama)
-        const summaryBtn = document.createElement('button');
-        summaryBtn.type = 'button';
-        summaryBtn.className = 'mw-audio-btn';
-        summaryBtn.innerHTML = '<i class="fa-solid fa-quote-right" aria-hidden="true"></i> Résumé vocal';
-        summaryBtn.setAttribute('aria-pressed', 'false');
-        controls.appendChild(summaryBtn);
+
         // Edit button (inline edit in app)
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
@@ -1174,68 +1168,7 @@
         startSpeak(text, listenBtn);
       });
 
-      // Wire summary button
-      // État du résumé
-      let summaryState = {
-        lastText: null,
-        lastSummary: null
-      };
-
-      summaryBtn.addEventListener('click', async () => {
-        if (ttsState.speaking) { 
-          stopSpeak(summaryBtn); 
-          return; 
-        }
-
-        // Désactive le bouton et montre l'état de chargement
-        summaryBtn.disabled = true;
-        summaryBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> Génération...';
-        
-        try {
-          const text = getReadableText(wrapper);
-          if (!text) {
-            throw new Error('Pas de contenu à résumer');
-          }
-          
-          let summary;
-          // Vérifie si nous avons déjà un résumé pour ce texte
-          if (summaryState.lastText === text && summaryState.lastSummary) {
-            summary = summaryState.lastSummary;
-          } else {
-            summary = await generateSummary(text);
-            if (!summary) {
-              throw new Error('Résumé vide');
-            }
-            // Sauvegarde le nouveau résumé
-            summaryState.lastText = text;
-            summaryState.lastSummary = summary;
-          }
-          
-          // Lance la lecture du résumé
-          startSpeak(summary, summaryBtn);
-          
-          // Met à jour l'interface
-          summaryBtn.disabled = false;
-          summaryBtn.innerHTML = '<i class="fa-solid fa-stop" aria-hidden="true"></i> Arrêter le résumé';
-          summaryBtn.classList.add('playing');
-        } catch (err) {
-          // Affiche une erreur plus conviviale
-          const errorMsg = document.createElement('div');
-          errorMsg.className = 'error-toast';
-          errorMsg.textContent = 'Erreur : ' + err.message;
-          document.body.appendChild(errorMsg);
-          
-          // Supprime le message d'erreur après 5 secondes
-          setTimeout(() => {
-            errorMsg.remove();
-          }, 5000);
-          
-          // Réinitialise le bouton
-          summaryBtn.disabled = false;
-          summaryBtn.innerHTML = '<i class="fa-solid fa-microphone-lines" aria-hidden="true"></i> Résumé vocal';
-          summaryBtn.classList.remove('playing');
-        }
-      });
+      
       }
 
       function createChatInterface() {

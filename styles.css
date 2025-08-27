@@ -1099,7 +1099,6 @@ button,
 
   /* Better touch targets */
   .msg-btn,
-  .mw-audio-btn,
   .mw-auth-btn {
     min-height: 44px;
     padding: var(--space-sm) var(--space-md);
@@ -1397,10 +1396,10 @@ textarea:focus {
   border: 1px solid var(--border-color);
   background: var(--white);
   color: var(--text-color);
-  padding: .35em .6em; /* match .mw-audio-btn size */
+  padding: .35em .6em;
   border-radius: 2px;
-  font: inherit; /* match .mw-audio-btn */
-  line-height: inherit; /* match .mw-audio-btn */
+  font: inherit;
+  line-height: inherit;
   display: inline-flex;
   align-items: center;
   gap: 6px;
