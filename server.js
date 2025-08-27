@@ -12,30 +12,60 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Configuration CORS
+// Configuration CORS avec gestion explicite des OPTIONS
 app.use(cors({
-  origin: '*', // Permet toutes les origines en développement
+  origin: '*',
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
-// Configuration du proxy Ollama
+// Gestion explicite des requêtes OPTIONS
+app.options('*', cors());
+
+// Configuration du proxy Ollama avec gestion améliorée des erreurs
 app.use('/ollama', createProxyMiddleware({
   target: 'http://localhost:11434',
   changeOrigin: true,
+  secure: false,
+  ws: true,
   pathRewrite: {
     '^/ollama': '/'
   },
+  onProxyReq: (proxyReq, req, res) => {
+    // Ajouter des en-têtes personnalisés si nécessaire
+    proxyReq.setHeader('X-Forwarded-Proto', 'https');
+  },
   onProxyRes: (proxyRes, req, res) => {
+    // En-têtes CORS
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
     proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
     proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
     proxyRes.headers['Access-Control-Allow-Credentials'] = 'true';
+    proxyRes.headers['Access-Control-Max-Age'] = '86400'; // 24 heures
+
+    // En-têtes de sécurité
+    proxyRes.headers['X-Content-Type-Options'] = 'nosniff';
+    proxyRes.headers['X-Frame-Options'] = 'DENY';
+    proxyRes.headers['X-XSS-Protection'] = '1; mode=block';
   },
   onError: (err, req, res) => {
     console.error('Erreur de proxy Ollama:', err);
-    res.status(502).json({ error: 'Erreur de connexion à Ollama' });
+    
+    // Réponse personnalisée en fonction du type d'erreur
+    if (err.code === 'ECONNREFUSED') {
+      res.status(503).json({ 
+        error: 'Le service Ollama n\'est pas accessible. Vérifiez qu\'il est bien démarré.',
+        code: 'ECONNREFUSED'
+      });
+    } else {
+      res.status(502).json({ 
+        error: 'Erreur de connexion à Ollama: ' + err.message,
+        code: err.code
+      });
+    }
   }
 }));
 
