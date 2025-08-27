@@ -442,6 +442,10 @@ body {
   padding: var(--space-md);
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 /* Article content mobile optimizations */
@@ -451,6 +455,10 @@ body {
     border-radius: 0;
     border-left: none;
     border-right: none;
+    width: 100vw;
+    margin-left: calc(-1 * var(--space-sm));
+    margin-right: calc(-1 * var(--space-sm));
+    min-height: calc(100vh - var(--space-lg));
   }
 
   /* Improve text readability on mobile */
@@ -633,11 +641,59 @@ button,
   animation: fadeIn 0.3s ease forwards;
 }
 
-/* Mobile optimizations for messages */
+/* Mobile optimizations for messages and articles */
 @media (max-width: 480px) {
   .message {
     grid-template-columns: 32px 1fr;
     gap: var(--space-xs);
+  }
+
+  /* Optimisations articles pour petits écrans */
+  .mw-article {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .mw-article img,
+  .mw-article figure,
+  .mw-article iframe {
+    max-width: 100vw !important;
+    margin-left: calc(-1 * var(--space-sm));
+    margin-right: calc(-1 * var(--space-sm));
+    width: calc(100% + (2 * var(--space-sm)));
+  }
+
+  .mw-article table {
+    max-width: calc(100vw - (2 * var(--space-sm)));
+    font-size: 14px;
+  }
+
+  .mw-article p {
+    margin: var(--space-md) 0;
+  }
+
+  .mw-article h2 {
+    font-size: 1.4em;
+    padding: var(--space-sm) 0;
+  }
+
+  .mw-article h3 {
+    font-size: 1.2em;
+    padding: var(--space-xs) 0;
+  }
+
+  /* Amélioration des marges et espacements */
+  .mw-article section {
+    margin: var(--space-md) 0;
+  }
+
+  /* Meilleure gestion du contenu flottant */
+  .mw-article .float-right,
+  .mw-article .float-left,
+  .mw-article [class*="float"] {
+    float: none;
+    margin: var(--space-md) 0;
+    width: 100%;
   }
 
   .bubble {
