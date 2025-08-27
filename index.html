@@ -8,7 +8,7 @@
   <link rel="shortcut icon" href="../cascade.ico" type="image/x-icon" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-  <meta name="description" content="Cascade — interface de chat inspirée de Wikipédia avec Ollama" />
+  <meta name="description" content="Cascade — interface de navigation inspirée de Wikipédia" />
   <meta name="color-scheme" content="light" />
   
   <!-- No external fonts to keep it self-contained -->
@@ -43,7 +43,6 @@
           </h3>
           <ul id="sidebar-links">
             <li><a href="#">Accueil</a></li>
-            <li><a href="#">Cascade Assistant</a></li>
             <li><a href="#">Portails thématiques</a></li>
             <li><a href="#">Article au hasard</a></li>
             <li><a href="#">Contact</a></li>
@@ -81,55 +80,20 @@
       <!-- Contenu principal -->
       <div class="mw-content">
         <article class="mw-article">
-          <main id="chat" class="chat"></main>
+          <main id="content" class="content"></main>
         </article>
       </div>
     </div>
   </div>
 
   <!-- Modal Auth -->
-  <div class="mw-modal" id="authModal" hidden>
-    <div class="mw-modal-backdrop" data-close="true"></div>
-    <div class="mw-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
-      <div class="mw-modal-header">
-        <h2 id="authTitle">Bienvenue</h2>
-        <button type="button" class="mw-modal-close" title="Fermer" aria-label="Fermer">&times;</button>
-      </div>
-      <div class="mw-modal-tabs" role="tablist">
-        <button type="button" class="mw-tab active" id="tab-login" aria-selected="true">Se connecter</button>
-        <button type="button" class="mw-tab" id="tab-register" aria-selected="false">S'inscrire</button>
-      </div>
-      <div class="mw-modal-body">
-        <form id="form-login" autocomplete="on">
-          <label>Email
-            <input type="email" name="email" required placeholder="vous@exemple.com" />
-          </label>
-          <label>Mot de passe
-            <input type="password" name="password" required placeholder="••••••••" />
-          </label>
-          <button type="submit" class="mw-primary">Se connecter</button>
-        </form>
-        <form id="form-register" hidden autocomplete="on">
-          <label>Email
-            <input type="email" name="email" required placeholder="vous@exemple.com" />
-          </label>
-          <label>Mot de passe
-            <input type="password" name="password" required placeholder="••••••••" />
-          </label>
-          <label>Confirmer le mot de passe
-            <input type="password" name="confirm" required placeholder="••••••••" />
-          </label>
-          <button type="submit" class="mw-primary">Créer un compte</button>
-        </form>
-      </div>
-    </div>
-  </div>
+
 
   <script>
-    (function() {
-      const form = document.querySelector('.mw-search');
-      const input = document.querySelector('.mw-search-input');
-      const container = document.getElementById('chat');
+    (async function() {
+      const searchForm = document.querySelector('.mw-search');
+      const searchInput = document.querySelector('.mw-search-input');
+      const container = document.getElementById('content');
       const rootMw = document.querySelector('.mw');
       const sidebar = document.querySelector('.mw-sidebar');
       const sidebarToggle = document.getElementById('sidebar-toggle');
@@ -146,7 +110,7 @@
       const formLogin = modal ? modal.querySelector('#form-login') : null;
       const formRegister = modal ? modal.querySelector('#form-register') : null;
       const HOME_TITLE = 'Wikipédia:Accueil principal';
-      if (!form || !input || !container) return;
+      if (!searchForm || !searchInput || !container) return;
 
       // Sidebar collapse/expand: keep title visible, hide list
       if (sidebar && sidebarToggle) {
@@ -764,95 +728,7 @@
           .mw-preview { flex: 1 1 auto; padding: .6em .8em; overflow: auto; }
           @media (max-width: 900px) { .mw-edit-split { grid-template-columns: 1fr; } }
 
-          /* Styles pour le chat Cascade Assistant */
-          .cascade-chat {
-            padding: 20px;
-            height: calc(100vh - 200px);
-            display: flex;
-            flex-direction: column;
-          }
-          .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background: #fff;
-            border: 1px solid #eaecf0;
-            border-radius: 8px 8px 0 0;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-          }
-          .message {
-            display: flex;
-            align-items: start;
-            gap: 12px;
-            max-width: 80%;
-          }
-          .message.user {
-            margin-left: auto;
-            flex-direction: row-reverse;
-          }
-          .message-content {
-            background: #f8f9fa;
-            padding: 12px 16px;
-            border-radius: 12px;
-            border: 1px solid #eaecf0;
-            line-height: 1.4;
-          }
-          .message.user .message-content {
-            background: #e8f2ff;
-            border-color: #c8dbf8;
-          }
-          .message i {
-            font-size: 20px;
-            color: #36c;
-            margin-top: 8px;
-          }
-          .chat-input-container {
-            background: #fff;
-            border: 1px solid #eaecf0;
-            border-top: none;
-            padding: 16px;
-            border-radius: 0 0 8px 8px;
-            display: flex;
-            gap: 12px;
-          }
-          #chatInput {
-            flex: 1;
-            border: 1px solid #a2a9b1;
-            border-radius: 6px;
-            padding: 12px;
-            font: inherit;
-            resize: none;
-            min-height: 50px;
-          }
-          #chatInput:focus {
-            outline: none;
-            border-color: #36c;
-          }
-          #sendMessage {
-            background: #36c;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            width: 50px;
-            cursor: pointer;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          #sendMessage:hover {
-            background: #447ff5;
-          }
-          #sendMessage:disabled {
-            background: #72727245;
-            cursor: not-allowed;
-          }
-          .cascade-chat h1 {
-            margin-bottom: 20px;
-            color: #202122;
-          }
+
         `;
         wrapper.className = 'mw-article-view';
         wrapper.innerHTML = html;
@@ -960,205 +836,7 @@
         document.title = 'Cascade Encylopédie';
 
         // Fonction utilitaire pour obtenir l'URL de l'API en fonction de l'environnement
-      function getApiUrl(endpoint) {
-        const isGitHubPages = window.location.hostname === 'cascadeencyclopedie.github.io';
-        const baseUrl = isGitHubPages 
-          ? 'https://cascade-proxy.herokuapp.com/ollama'  // URL du proxy HTTPS déployé
-          : 'http://localhost:11434';
-        return `${baseUrl}${endpoint}`;
-      }
 
-      // Check if Ollama is running
-      async function checkOllamaStatus() {
-        try {
-          const response = await fetch(getApiUrl('/api/tags'));
-          if (!response.ok) throw new Error('Ollama n\'est pas en cours d\'exécution');
-          return true;
-        } catch (err) {
-          throw new Error('Ollama n\'est pas en cours d\'exécution. Veuillez démarrer Ollama et réessayer.');
-        }
-      }
-
-      // Extrait les phrases clés d'un texte
-      function extractKeyPoints(text) {
-        // Diviser en phrases
-        const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-        
-        // Calculer la longueur moyenne des phrases
-        const avgLength = sentences.reduce((acc, s) => acc + s.length, 0) / sentences.length;
-        
-        // Filtrer et scorer les phrases
-        return sentences
-          .map(sentence => ({
-            text: sentence.trim(),
-            score: scoreSentence(sentence, avgLength)
-          }))
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 5)
-          .map(s => s.text);
-      }
-
-      // Score une phrase selon plusieurs critères
-      function scoreSentence(sentence, avgLength) {
-        let score = 0;
-        
-        // Longueur optimale (ni trop courte ni trop longue)
-        const lengthScore = 1 - Math.abs(sentence.length - avgLength) / avgLength;
-        score += lengthScore;
-
-        // Présence de mots clés importants
-        const keywordRegex = /\b(principal|important|essenti[ee]l|clé|majeur|fondamental|notamment|caractéris[ée]|permet|présent[ée]|définit|consiste|représente)\b/i;
-        if (keywordRegex.test(sentence)) score += 0.5;
-
-        // Éviter les phrases trop courtes
-        if (sentence.length < 30) score -= 0.5;
-
-        // Bonus pour les phrases du début (souvent plus importantes)
-        if (sentence.length > 50) score += 0.3;
-
-        return score;
-      }
-
-      // Generate summary with Ollama
-      // Fonction pour analyser la structure du texte
-      function analyzeTextStructure(text) {
-        const sections = text.split(/\n\s*\n/).filter(s => s.trim());
-        const intro = sections[0] || '';
-        const mainContent = sections.slice(1, -1).join(' ');
-        const conclusion = sections[sections.length - 1] || '';
-
-        return {
-          intro: intro.slice(0, 500),
-          mainContent,
-          conclusion: conclusion.slice(0, 300)
-        };
-      }
-
-      // Fonction pour identifier les mots-clés importants
-      function extractKeywords(text) {
-        const words = text.toLowerCase().match(/\b\w{4,}\b/g) || [];
-        const wordCount = {};
-        words.forEach(word => {
-          wordCount[word] = (wordCount[word] || 0) + 1;
-        });
-
-        return Object.entries(wordCount)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 10)
-          .map(([word]) => word);
-      }
-
-      async function generateSummary(text) {
-        try {
-          await checkOllamaStatus();
-
-          const tagsResponse = await fetch(getApiUrl('/api/tags'));
-          const tagsData = await tagsResponse.json();
-          const models = tagsData.models || [];
-          
-          if (!models.some(m => m.name === 'gemma3' || m.name === 'gemma3:latest')) {
-            console.log('Modèles disponibles:', models.map(m => m.name).join(', '));
-            throw new Error('Le modèle gemma3 n\'est pas détecté. Veuillez vérifier qu\'il est bien installé avec la commande : ollama list');
-          }
-
-          // Analyse approfondie du texte
-          const structure = analyzeTextStructure(text);
-          const keyPoints = extractKeyPoints(text);
-          const keywords = extractKeywords(text);
-          
-          // Construction d'un prompt plus intelligent
-          const prompt = `En tant qu'expert en résumé et narration, crée un résumé engageant et naturel en français.
-
-          Structure de l'article :
-          - Introduction: ${structure.intro}
-          - Conclusion: ${structure.conclusion}
-
-          Mots-clés importants : ${keywords.join(', ')}
-
-          Points clés à couvrir :
-          ${keyPoints.map((point, i) => `${i + 1}. ${point}`).join('\n')}
-
-          Directives pour le résumé :
-          1. Commence par une accroche qui capte l'attention, du type "Dans cet article fascinant..."
-          2. Structure le résumé en 3-4 paragraphes courts et clairs
-          3. Utilise ces transitions naturelles variées :
-             - "En ce qui concerne..."
-             - "Il convient de souligner que..."
-             - "De manière intéressante..."
-             - "À cet égard..."
-             - "Dans ce contexte..."
-             - "Plus précisément..."
-             - "En outre..."
-             - "Cela nous amène à..."
-             - "Pour finir..."
-          4. Explique les concepts complexes simplement
-          5. Inclus les mots-clés importants identifiés
-          6. Termine par une conclusion qui relie les idées principales
-
-          Format : Le résumé doit être optimisé pour une lecture à voix haute fluide et naturelle.
-          Longueur idéale : environ 4-5 phrases bien construites.`;
-
-          const response = await fetch(getApiUrl('/api/generate'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: 'gemma3',
-              prompt: prompt,
-              stream: false
-            })
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || 'Erreur lors de la génération du résumé');
-          }
-          
-          const data = await response.json();
-          
-          // Nettoyer et optimiser pour la lecture vocale
-          let cleanText = data.response
-            // Nettoyer le formatage
-            .replace(/\*+/g, '')
-            .replace(/\[[^\]]*\]/g, '')
-            .replace(/\([^)]*\)/g, '')
-            // Améliorer les nombres et dates
-            .replace(/(\d+)/g, (match) => {
-              const num = parseInt(match);
-              if (num >= 1000 && num <= 2099) {
-                return convertYearToSpoken(num);
-              }
-              return match.split('').join(' ');
-            })
-            // Ajouter des pauses naturelles
-            .replace(/([.!?]) /g, '$1... ')
-            // Améliorer les transitions
-            .replace(/\. (?=[A-Z])/g, '. Par ailleurs, ')
-            .replace(/\! (?=[A-Z])/g, '! En outre, ')
-            .replace(/\? (?=[A-Z])/g, '? De plus, ')
-            // Standardiser la ponctuation
-            .replace(/([.!?]){2,}/g, '$1')
-            .replace(/…/g, '...')
-            // Gérer les énumérations
-            .replace(/(\d+)\)/g, '$1... ')
-            .replace(/[•\-]\s/g, '... ')
-            // Nettoyer les espaces
-            .replace(/\s+/g, ' ')
-            .trim();
-
-          // Ajouter une introduction et une conclusion pour le contexte
-          cleanText = `Voici le résumé de l'article. ${cleanText} C'était le résumé de l'article.`;
-          
-          return cleanText;
-        } catch (err) {
-          if (err.message.includes('n\'est pas en cours d\'exécution')) {
-            throw err;
-          }
-          if (err.message.includes('n\'est pas installé')) {
-            throw err;
-          }
-          throw new Error('Erreur Ollama : ' + (err.message || 'Erreur de connexion à Ollama. Vérifiez qu\'Ollama est en cours d\'exécution.'));
-        }
-      }
 
       // Wire TTS button
       listenBtn.addEventListener('click', () => {
@@ -1169,106 +847,6 @@
       });
 
       
-      }
-
-      function createChatInterface() {
-        return `
-          <div class="cascade-chat">
-            <h1>Cascade Assistant</h1>
-            <div class="chat-messages" id="chatMessages">
-              <div class="message assistant">
-                <i class="fa-solid fa-robot"></i>
-                <div class="message-content">
-                  Bonjour ! Je suis Cascade Assistant. Comment puis-je vous aider ?
-                </div>
-              </div>
-            </div>
-            <div class="chat-input-container">
-              <textarea id="chatInput" placeholder="Écrivez votre message..." rows="2"></textarea>
-              <button id="sendMessage" title="Envoyer">
-                <i class="fa-solid fa-paper-plane"></i>
-              </button>
-            </div>
-          </div>
-        `;
-      }
-
-      // Initialisation du chat
-      function initChat() {
-        const chatHtml = createChatInterface();
-        container.innerHTML = chatHtml;
-        
-        const input = document.getElementById('chatInput');
-        const sendButton = document.getElementById('sendMessage');
-        const messages = document.getElementById('chatMessages');
-        let isProcessing = false;
-
-        function addMessage(content, isUser = false) {
-          const messageDiv = document.createElement('div');
-          messageDiv.className = 'message ' + (isUser ? 'user' : 'assistant');
-          
-          if (!isUser) {
-            const icon = document.createElement('i');
-            icon.className = 'fa-solid fa-robot';
-            messageDiv.appendChild(icon);
-          }
-
-          const contentDiv = document.createElement('div');
-          contentDiv.className = 'message-content';
-          contentDiv.textContent = content;
-          messageDiv.appendChild(contentDiv);
-          
-          messages.appendChild(messageDiv);
-          messages.scrollTop = messages.scrollHeight;
-        }
-
-        async function handleMessage() {
-          if (isProcessing || !input.value.trim()) return;
-          
-          const userMessage = input.value.trim();
-          input.value = '';
-          addMessage(userMessage, true);
-          
-          isProcessing = true;
-          sendButton.disabled = true;
-          
-          try {
-            const response = await fetch(getApiUrl('/api/generate'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                model: 'gemma3',
-                prompt: userMessage,
-                stream: false
-              })
-            });
-            
-            if (!response.ok) throw new Error('Erreur de communication');
-            const data = await response.json();
-            const reply = data.response.replace(/\*+/g, '').trim();
-            addMessage(reply);
-            chatHistory.push({ role: 'assistant', content: reply });
-          } catch (err) {
-            addMessage('Désolé, je rencontre des difficultés techniques. Veuillez réessayer.');
-            console.error('Erreur:', err);
-          } finally {
-            isProcessing = false;
-            sendButton.disabled = false;
-            input.focus();
-          }
-        }
-
-        // Événements
-        sendButton.addEventListener('click', handleMessage);
-        input.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleMessage();
-          }
-        });
-
-        // Focus initial
-        input.focus();
       }
 
       async function handleSubmit(e) {
@@ -1343,258 +921,12 @@
         }, true);
       }
 
-      form.addEventListener('submit', handleSubmit);
+      searchForm.addEventListener('submit', handleSubmit);
 
-      // Fonction pour créer l'interface de chat
-      function createChatInterface() {
-        container.innerHTML = `
-          <div class="cascade-chat">
-            <h1 class="chat-title">
-              <img src="cascade.ico" alt="Logo" class="cascade-icon">
-              Cascade Encylopédie
-            </h1>
-            <div class="chat-container">
-              <div id="chatMessages" class="chat-messages">
-                <div class="message assistant">
-                  <img src="cascade.ico" alt="Cascade" class="cascade-icon">
-                  <div class="message-content">
-                    Bonjour ! Je suis Cascade Assistant, votre guide pour explorer et comprendre les articles. Comment puis-je vous aider aujourd'hui ?
-                    <div class="message-actions">
-                      <button class="msg-btn copy-btn" title="Copier le message" aria-label="Copier le message">
-                        <i class="fa-regular fa-copy"></i>
-                        <span>Copier</span>
-                      </button>
-                      <button class="msg-btn speak-btn" title="Écouter le message" aria-label="Écouter le message">
-                        <i class="fa-solid fa-volume-high"></i>
-                        <span>Écouter</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="chat-input-wrapper">
-                <textarea 
-                  id="chatInput" 
-                  placeholder="Posez votre question..." 
-                  rows="1"
-                  class="chat-input"
-                ></textarea>
-                <button id="sendMessage" class="chat-send-btn">
-                  <i class="fa-solid fa-paper-plane"></i>
-                </button>
-              </div>
-            </div>
-            <div class="chat-disclaimer" role="note" aria-live="polite">Cascade Assistant peut se tromper dans ses réponses.</div>
-          </div>
-        `;
 
-        // Ajout des styles spécifiques au chat
         const chatStyle = document.createElement('style');
         chatStyle.textContent = `
-          .cascade-chat {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 1em;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.6;
-          }
 
-          .chat-title {
-            border-bottom: 1px solid #a2a9b1;
-            color: #202122;
-            font-family: 'Linux Libertine', Georgia, Times, serif;
-            font-size: 1.8em;
-            font-weight: normal;
-            margin: .5em 0 .5em;
-            padding: 0 0 .17em;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-          }
-          
-          .chat-title img.cascade-icon {
-            width: 24px;
-            height: 24px;
-            vertical-align: middle;
-            margin-right: 8px;
-          }
-
-          .chat-container {
-            background: #ffffff;
-            border: 1px solid #a2a9b1;
-            border-radius: 2px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: calc(90vh - 200px);
-          }
-
-          .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1em;
-            display: flex;
-            flex-direction: column;
-            gap: 1em;
-            background: #ffffff;
-          }
-
-          .message {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            max-width: 85%;
-            transition: opacity 0.2s ease;
-          }
-
-          .message.user {
-            margin-left: auto;
-            flex-direction: row-reverse;
-          }
-
-          .cascade-icon {
-            width: 20px;
-            height: 20px;
-            margin-top: 4px;
-          }
-
-          .message-content {
-            background: #f8f9fa;
-            padding: 12px;
-            border: 1px solid #a2a9b1;
-            line-height: 1.6;
-            font-size: 0.875rem;
-            color: #202122;
-          }
-
-          .message-prefix {
-            font-weight: bold;
-            margin-bottom: 4px;
-            color: #54595d;
-          }
-
-          .message.user .message-content {
-            background: #eaf3ff;
-            border-color: #a2a9b1;
-            color: #202122;
-          }
-
-          .message.user .message-prefix {
-            color: #36c;
-          }
-
-          .chat-input-wrapper {
-            padding: 1em;
-            background: #f8f9fa;
-            border-top: 1px solid #a2a9b1;
-            display: flex;
-            gap: 8px;
-            align-items: flex-end;
-          }
-
-          .chat-input {
-            flex: 1;
-            border: 1px solid #a2a9b1;
-            padding: 8px;
-            font-size: 0.875rem;
-            font-family: inherit;
-            resize: none;
-            background: #ffffff;
-            min-height: 24px;
-            max-height: 150px;
-          }
-
-          .chat-input:focus {
-            outline: none;
-            border-color: #36c;
-            box-shadow: inset 0 0 0 1px #36c;
-          }
-
-          .chat-send-btn {
-            background: #ffffff;
-            color: #202122;
-            border: 1px solid #a2a9b1;
-            padding: 6px 12px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            transition: all 0.1s;
-            min-width: 32px;
-            height: 32px;
-          }
-
-          .chat-send-btn:hover {
-            background: #f8f9fa;
-            border-color: #72777d;
-          }
-
-          .chat-send-btn:disabled {
-            background: #f8f9fa;
-            border-color: #c8ccd1;
-            color: #72777d;
-            cursor: not-allowed;
-          }
-
-          .chat-messages::-webkit-scrollbar {
-            width: 8px;
-          }
-
-          .chat-messages::-webkit-scrollbar-track {
-            background: #F7F9FC;
-          }
-
-          .chat-messages::-webkit-scrollbar-thumb {
-            background: #BDC3C7;
-            border-radius: 4px;
-          }
-
-          .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: #95A5A6;
-          }
-
-          .message-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 6px;
-          }
-
-          .msg-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 8px;
-            border: 1px solid #c8ccd1;
-            background: #fff;
-            color: #202122;
-            font-size: 12px;
-            cursor: pointer;
-            border-radius: 2px;
-          }
-
-          .msg-btn:hover { background: #f8f9fa; }
-          .msg-btn i { font-size: 12px; }
-
-          .chat-disclaimer {
-            margin-top: 8px;
-            font-size: 12px;
-            color: #72777d;
-            text-align: center;
-          }
-
-          @media (max-width: 768px) {
-            .cascade-chat {
-              padding: 10px;
-            }
-            .message {
-              max-width: 90%;
-            }
-            .chat-input-wrapper {
-              padding: 15px;
-            }
-          }
         `;
         document.head.appendChild(chatStyle);
 
@@ -1983,19 +1315,29 @@
         input.focus();
       }
 
-      // Gestionnaire de clic pour le lien Cascade Assistant
-      document.querySelectorAll('nav a').forEach(link => {
-        if (link.textContent === 'Cascade Assistant') {
-          link.addEventListener('click', (e) => {
+      // Initialize application
+      async function initApp() {
+        // Set up key functionality
+        setupLinkInterception();
+        searchForm.addEventListener('submit', handleSubmit);
+
+        // Handle logo click to return home
+        const logo = document.querySelector('.mw-logo');
+        if (logo) {
+          logo.addEventListener('click', async (e) => {
             e.preventDefault();
-            createChatInterface();
+            container.textContent = 'Chargement de l\'accueil…';
+            try {
+              const html = await fetchArticleHTML(HOME_TITLE);
+              render(html, HOME_TITLE);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (err) {
+              container.textContent = 'Erreur de chargement de l\'accueil: ' + (err && err.message ? err.message : err);
+            }
           });
         }
-      });
 
-      setupLinkInterception();
-      // Load home article on startup
-      (async () => {
+        // Load home article on startup
         container.textContent = 'Chargement de l\'accueil…';
         try {
           const html = await fetchArticleHTML(HOME_TITLE);
@@ -2003,22 +1345,10 @@
         } catch (err) {
           container.textContent = 'Erreur de chargement de l\'accueil: ' + (err && err.message ? err.message : err);
         }
-      })();
-      // Clicking the logo returns to home
-      const logo = document.querySelector('.mw-logo');
-      if (logo) {
-        logo.addEventListener('click', async (e) => {
-          e.preventDefault();
-          container.textContent = 'Chargement de l\'accueil…';
-          try {
-            const html = await fetchArticleHTML(HOME_TITLE);
-            render(html, HOME_TITLE);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          } catch (err) {
-            container.textContent = 'Erreur de chargement de l\'accueil: ' + (err && err.message ? err.message : err);
-          }
-        });
       }
+
+      // Start the application
+      await initApp();
     })();
   </script>
 </body>
