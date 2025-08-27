@@ -14,9 +14,10 @@ const app = express();
 
 // Configuration CORS
 app.use(cors({
-  origin: ['https://cascadeencyclopedie.github.io', 'http://localhost:3000'],
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type']
+  origin: '*', // Permet toutes les origines en développement
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
 // Configuration du proxy Ollama
@@ -25,6 +26,12 @@ app.use('/ollama', createProxyMiddleware({
   changeOrigin: true,
   pathRewrite: {
     '^/ollama': '/'
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+    proxyRes.headers['Access-Control-Allow-Credentials'] = 'true';
   },
   onError: (err, req, res) => {
     console.error('Erreur de proxy Ollama:', err);
