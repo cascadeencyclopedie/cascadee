@@ -11,24 +11,37 @@
   --success-color: #34d399;
   --user-color: #60a5fa;
   
-  /* Space units */
-  --space-xs: clamp(4px, 0.5vw, 6px);
-  --space-sm: clamp(8px, 1vw, 12px);
-  --space-md: clamp(16px, 2vw, 24px);
-  --space-lg: clamp(24px, 3vw, 32px);
+  /* Space units with better mobile scaling */
+  --space-xs: clamp(3px, 0.5vw, 6px);
+  --space-sm: clamp(6px, 1vw, 12px);
+  --space-md: clamp(12px, 2vw, 24px);
+  --space-lg: clamp(20px, 3vw, 32px);
   
-  /* Font sizes - using clamp for responsive typography */
-  --text-xs: clamp(11px, 0.75rem, 13px);
-  --text-sm: clamp(13px, 0.875rem, 15px);
-  --text-base: clamp(15px, 1rem, 17px);
-  --text-lg: clamp(17px, 1.125rem, 19px);
-  --text-xl: clamp(20px, 1.375rem, 24px);
-  --text-2xl: clamp(24px, 1.75rem, 32px);
+  /* Font sizes with improved mobile readability */
+  --text-xs: clamp(11px, 0.75rem + 0.1vw, 13px);
+  --text-sm: clamp(13px, 0.875rem + 0.1vw, 15px);
+  --text-base: clamp(15px, 1rem + 0.15vw, 17px);
+  --text-lg: clamp(17px, 1.125rem + 0.2vw, 19px);
+  --text-xl: clamp(20px, 1.375rem + 0.25vw, 24px);
+  --text-2xl: clamp(24px, 1.75rem + 0.3vw, 32px);
   
   /* Breakpoints */
+  --xs-mobile: 360px;
   --mobile: 480px;
   --tablet: 768px;
   --desktop: 1024px;
+  --wide: 1280px;
+  
+  /* Layout */
+  --header-height: clamp(48px, 8vh, 64px);
+  --sidebar-width: clamp(240px, 25vw, 320px);
+  --content-width: clamp(300px, 95vw, 1200px);
+  
+  /* Z-index layers */
+  --z-header: 1000;
+  --z-modal: 2000;
+  --z-tooltip: 3000;
+  --z-toast: 4000;
 }
 
 * { box-sizing: border-box; }
@@ -272,9 +285,91 @@ body {
   min-height: calc(100vh - 80px);
 }
 
-/* Collapsed sidebar state toggled from header button */
-.sidebar-collapsed .mw-sidebar { display: none; }
-.sidebar-collapsed .mw-layout { grid-template-columns: 1fr; }
+/* Mobile Navigation and Sidebar */
+.mw-nav-toggle {
+  display: none;
+  border: none;
+  background: transparent;
+  padding: var(--space-xs);
+  margin: 0;
+  cursor: pointer;
+}
+
+.mw-nav-toggle span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  margin: 5px 0;
+  background: var(--text-color);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Mobile sidebar behavior */
+@media (max-width: 768px) {
+  .mw-nav-toggle {
+    display: block;
+    position: absolute;
+    top: var(--space-sm);
+    left: var(--space-sm);
+    z-index: var(--z-header);
+  }
+
+  .mw-sidebar {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    bottom: 0;
+    width: min(300px, 80vw);
+    background: var(--white);
+    border-right: 1px solid var(--border-color);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: var(--z-header);
+    overflow-y: auto;
+    padding: var(--space-sm);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Active state */
+  .nav-active .mw-sidebar {
+    transform: translateX(0);
+  }
+
+  .nav-active .mw-nav-toggle span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+  }
+
+  .nav-active .mw-nav-toggle span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .nav-active .mw-nav-toggle span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
+  }
+
+  /* Prevent scroll when nav is open */
+  .nav-active {
+    overflow: hidden;
+  }
+
+  /* Overlay when nav is open */
+  .nav-active::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: calc(var(--z-header) - 1);
+  }
+}
+
+/* Collapsed sidebar state */
+.sidebar-collapsed .mw-sidebar { 
+  transform: translateX(-100%);
+}
+
+.sidebar-collapsed .mw-layout { 
+  grid-template-columns: 1fr;
+}
 
 /* Responsive Design */
 /* Responsive Breakpoints with Modern Layout Adjustments */
@@ -366,7 +461,64 @@ body {
 }
 
 /* Mobile devices */
-/* Mobile-first optimizations */
+/* Extra small devices */
+@media (max-width: 360px) {
+  /* Container adjustments */
+  .mw {
+    padding: 0;
+  }
+
+  /* Optimize header for very small screens */
+  .mw-header {
+    padding: var(--space-xs);
+  }
+
+  /* Compact logo and branding */
+  .mw-brand {
+    padding: var(--space-xs) 0;
+  }
+
+  .mw-logo {
+    font-size: var(--text-lg);
+  }
+
+  .mw-logo-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* More compact search */
+  .mw-search-input,
+  .mw-search-btn {
+    height: 38px;
+  }
+
+  /* Adjust content spacing */
+  .mw-content {
+    padding: var(--space-xs);
+  }
+
+  /* Compact buttons */
+  button,
+  .mw-auth-btn,
+  .mw-primary {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-sm);
+  }
+
+  /* Tighter spacing in lists and content */
+  .mw-article ul,
+  .mw-article ol {
+    padding-left: var(--space-md);
+  }
+
+  /* More compact modals */
+  .mw-modal-dialog {
+    padding: var(--space-xs);
+  }
+}
+
+/* Small mobile devices */
 @media (max-width: 480px) {
   /* Container adjustments */
   .mw {
@@ -1168,6 +1320,53 @@ textarea:focus {
   .mw-content {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
+  }
+}
+
+/* Performance optimizations */
+@media (max-width: 768px) {
+  /* Enable hardware acceleration for animations */
+  .mw-header,
+  .mw-sidebar,
+  .mw-nav-toggle span {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  /* Optimize paint performance */
+  .mw-content,
+  .mw-sidebar {
+    will-change: transform;
+  }
+
+  /* Reduce paint area */
+  .message,
+  .bubble,
+  .avatar {
+    contain: content;
+  }
+
+  /* Lazy load images */
+  img {
+    loading: lazy;
+  }
+
+  /* Optimize animations */
+  @media (prefers-reduced-data: reduce) {
+    * {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+
+  /* Prevent layout shifts */
+  .mw-article img,
+  .mw-article iframe,
+  .mw-article video {
+    aspect-ratio: attr(width) / attr(height);
+    contain: strict;
+    content-visibility: auto;
   }
 }
 
